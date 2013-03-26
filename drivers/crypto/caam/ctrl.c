@@ -610,6 +610,22 @@ static int caam_probe(struct platform_device *pdev)
 			      JRSTART_JR1_START | JRSTART_JR2_START |
 			      JRSTART_JR3_START);
 
+#ifdef CONFIG_SOC_IMX6
+	/*
+	 * ERRATA:  mx6 devices have an issue wherein AXI bus transactions
+	 * may not occur in the correct order. This isn't a problem running
+	 * single descriptors, but can be if running multiple concurrent
+	 * descriptors. Reworking the driver to throttle to single requests
+	 * is impractical, thus the workaround is to limit the AXI pipeline
+	 * to a depth of 1 (from it's default of 4) to preclude this situation
+	 * from occurring.
+	 */
+	wr_reg32(&ctrl->mcr,
+		 (rd_reg32(&ctrl->mcr) & ~(MCFGR_AXIPIPE_MASK)) |
+		 ((1 << MCFGR_AXIPIPE_SHIFT) & MCFGR_AXIPIPE_MASK));
+#endif
+
+	/* Set DMA masks according to platform ranging */
 	if (sizeof(dma_addr_t) == sizeof(u64))
 		if (of_device_is_compatible(nprop, "fsl,sec-v5.0"))
 			dma_set_mask_and_coherent(dev, DMA_BIT_MASK(40));
