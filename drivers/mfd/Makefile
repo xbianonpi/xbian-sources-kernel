@@ -214,3 +214,4 @@ obj-$(CONFIG_MFD_ALTERA_A10SR)	+= altera-a10sr.o
 obj-$(CONFIG_MFD_SUN4I_GPADC)	+= sun4i-gpadc.o
 
 obj-$(CONFIG_MFD_MXC_HDMI)	+= mxc-hdmi-core.o
+obj-$(CONFIG_MFD_TDA1997X)	+= tda1997x-core.o
