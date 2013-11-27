@@ -15,6 +15,7 @@
 #include "desc_constr.h"
 #include "error.h"
 #include "ctrl.h"
+#include "sm.h"
 
 bool caam_little_end;
 EXPORT_SYMBOL(caam_little_end);
@@ -429,6 +430,8 @@ static int caam_probe(struct platform_device *pdev)
 	struct device *dev;
 	struct device_node *nprop, *np;
 	struct caam_ctrl __iomem *ctrl;
+	struct caam_full __iomem *topregs;
+	struct snvs_full __iomem *snvsregs;
 	struct caam_drv_private *ctrlpriv;
 	struct clk *clk;
 #ifdef CONFIG_DEBUG_FS
@@ -447,6 +450,38 @@ static int caam_probe(struct platform_device *pdev)
 	dev_set_drvdata(dev, ctrlpriv);
 	ctrlpriv->pdev = pdev;
 	nprop = pdev->dev.of_node;
+
+	/* Get configuration properties from device tree */
+	/* First, get register page */
+	ctrl = of_iomap(nprop, 0);
+	if (ctrl == NULL) {
+		dev_err(dev, "caam: of_iomap() failed\n");
+		return -ENOMEM;
+	}
+	ctrlpriv->ctrl = (struct caam_ctrl __force *)ctrl;
+
+	/* topregs used to derive pointers to CAAM sub-blocks only */
+	topregs = (struct caam_full __iomem *)ctrl;
+
+	/* Get the IRQ of the controller (for security violations only) */
+	ctrlpriv->secvio_irq = irq_of_parse_and_map(nprop, 0);
+
+	/* Get SNVS register Page */
+	np = of_find_compatible_node(NULL, NULL, "fsl,imx6q-caam-snvs");
+
+	if (!np)
+		return -ENODEV;
+
+	snvsregs = of_iomap(np, 0);
+	ctrlpriv->snvs = snvsregs;
+	/* Get CAAM-SM node and of_iomap() and save */
+	np = of_find_compatible_node(NULL, NULL, "fsl,imx6q-caam-sm");
+
+	if (!np)
+		return -ENODEV;
+
+	ctrlpriv->sm_base = of_iomap(np, 0);
+	ctrlpriv->sm_size = 0x3fff;
 
 	/* Enable clocking */
 	clk = caam_drv_identify_clk(&pdev->dev, "caam_ipg");
