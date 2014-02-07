@@ -25,3 +25,8 @@ obj-$(CONFIG_MXC_HDMI_CSI2_TC358743) += tc358743_h2c_bridge.o
 
 adv7180_tvin-objs := adv7180.o
 obj-$(CONFIG_MXC_TVIN_ADV7180) += adv7180_tvin.o
+
+obj-$(CONFIG_VIDEO_V4L2_INT_DEVICE) += v4l2-int-device.o
+
+tda1997x-video-objs := tda1997x.o
+obj-$(CONFIG_MXC_TVIN_TDA1997X) += tda1997x-video.o
