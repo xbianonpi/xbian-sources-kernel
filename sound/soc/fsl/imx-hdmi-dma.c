@@ -575,20 +575,6 @@ static int hdmi_dma_set_thrsld_incrtype(struct device *dev, int channels)
 	return 0;
 }
 
-static void hdmi_dma_set_hbr(struct device *dev, int channels)
-{
-	u8 value = hdmi_readb(HDMI_AHB_DMA_CONF0) & (~HDMI_AHB_DMA_CONF0_HBR_MASK);
-
-	/* non audio AES and 8 channels means we have to enable HBR */
-	if ((channels == 8) &&
-	    (iec_header.B.linear_pcm == 0)) {
-		value |= HDMI_AHB_DMA_CONF0_HBR_MASK;
-		dev_info(dev, "Enabling HBR");
-	}
-
-	hdmi_writeb(value, HDMI_AHB_DMA_CONF0);
-}
-
 static int hdmi_dma_configure_dma(struct device *dev, int channels)
 {
 	int ret;
@@ -606,9 +592,6 @@ static int hdmi_dma_configure_dma(struct device *dev, int channels)
 		return ret;
 
 	hdmi_writeb(chan_enable[channels / 2], HDMI_AHB_DMA_CONF1);
-
-	/* Handle HBR */
-	hdmi_dma_set_hbr(dev, channels);
 
 	return 0;
 }
