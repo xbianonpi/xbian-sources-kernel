@@ -978,6 +978,7 @@
 				phy-mode = "rgmii";
 				fsl,magic-packet;
 				status = "okay";
+				local-mac-address = [FF FF FF FF FF FF];
 			};
 
 			mlb: mlb@0218c000 {
