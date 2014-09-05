@@ -329,7 +329,6 @@ struct sdma_channel {
 	unsigned int			pc_from_device, pc_to_device;
 	unsigned int			device_to_device;
 	unsigned long			flags;
-	unsigned int			other_script;
 	enum sdma_mode			mode;
 	dma_addr_t			per_address, per_address2;
 	unsigned long			event_mask[2];
@@ -780,7 +779,8 @@ static irqreturn_t sdma_int_handler(int irq, void *dev_id)
 		int channel = fls(stat) - 1;
 		struct sdma_channel *sdmac = &sdma->channel[channel];
 
-		if (sdmac->mode & SDMA_MODE_LOOP)
+		if ((sdmac->flags & SDMA_MODE_LOOP) &&
+			(sdmac->peripheral_type != IMX_DMATYPE_HDMI))
 			sdma_update_channel_loop(sdmac);
 		else
 			tasklet_schedule(&sdmac->tasklet);
@@ -808,7 +808,6 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 	sdmac->pc_from_device = 0;
 	sdmac->pc_to_device = 0;
 	sdmac->device_to_device = 0;
-	sdmac->other_script = 0;
 
 	switch (peripheral_type) {
 	case IMX_DMATYPE_MEMORY:
@@ -878,7 +877,7 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 		emi_2_per = sdma->script_addrs->ext_mem_2_ipu_addr;
 		break;
 	case IMX_DMATYPE_HDMI:
-		other = sdma->script_addrs->hdmi_dma_addr;
+		emi_2_per = sdma->script_addrs->hdmi_dma_addr;
 		break;
 	default:
 		break;
@@ -887,7 +886,6 @@ static void sdma_get_pc(struct sdma_channel *sdmac,
 	sdmac->pc_from_device = per_2_emi;
 	sdmac->pc_to_device = emi_2_per;
 	sdmac->device_to_device = per_2_per;
-	sdmac->other_script = other;
 }
 
 static int sdma_load_context(struct sdma_channel *sdmac)
@@ -904,10 +902,8 @@ static int sdma_load_context(struct sdma_channel *sdmac)
 		load_address = sdmac->pc_from_device;
 	else if (sdmac->direction == DMA_DEV_TO_DEV)
 		load_address = sdmac->device_to_device;
-	else if (sdmac->direction == DMA_MEM_TO_DEV)
-		load_address = sdmac->pc_to_device;
 	else
-		load_address = sdmac->other_script;
+		load_address = sdmac->pc_to_device;
 
 	if (load_address < 0)
 		return load_address;
@@ -928,8 +924,8 @@ static int sdma_load_context(struct sdma_channel *sdmac)
 	 * and watermark level
 	 */
 	if (sdmac->peripheral_type == IMX_DMATYPE_HDMI) {
-		context->gReg[4] = sdmac->data_addr1;
-		context->gReg[6] = sdmac->data_addr2;
+		context->gReg[4] = sdmac->per_addr;
+		context->gReg[6] = sdmac->shp_addr;
 	} else {
 		context->gReg[0] = sdmac->event_mask[1];
 		context->gReg[1] = sdmac->event_mask[0];
@@ -1120,7 +1116,8 @@ static int sdma_config_channel(struct dma_chan *chan)
 			__set_bit(sdmac->event_id0, sdmac->event_mask);
 
 		/* Address */
-		if (sdmac->direction == DMA_DEV_TO_DEV) {
+		if (sdmac->direction == DMA_DEV_TO_DEV ||
+			 (sdmac->peripheral_type == IMX_DMATYPE_HDMI)) {
 			sdmac->shp_addr = sdmac->per_address2;
 			sdmac->per_addr = sdmac->per_address;
 		} else if (sdmac->direction == DMA_TRANS_NONE) {
@@ -1434,10 +1431,10 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	if (ret)
 		goto err_out;
 
-	if (period_len)
-		num_periods = buf_len / period_len;
-	else
+	if (sdmac->peripheral_type == IMX_DMATYPE_HDMI)
 		return &sdmac->desc;
+	else
+		num_periods = buf_len / period_len;
 
 	if (num_periods > NUM_BD) {
 		dev_err(sdma->dev, "SDMA channel %d: maximum number of sg exceeded: %d > %d\n",
@@ -1519,6 +1516,10 @@ static int sdma_config(struct dma_chan *chan,
 		sdmac->watermark_level |= (dmaengine_cfg->dst_maxburst << 16) &
 			SDMA_WATERMARK_LEVEL_HWML;
 		sdmac->word_size = dmaengine_cfg->dst_addr_width;
+	} else if (sdmac->peripheral_type == IMX_DMATYPE_HDMI) {
+		sdmac->per_address = dmaengine_cfg->src_addr;
+		sdmac->per_address2 = dmaengine_cfg->dst_addr;
+		sdmac->watermark_level = 0;
 	} else {
 		sdmac->per_address = dmaengine_cfg->dst_addr;
 		sdmac->watermark_level = dmaengine_cfg->dst_maxburst *
