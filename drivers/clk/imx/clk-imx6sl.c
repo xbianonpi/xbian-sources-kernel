@@ -421,6 +421,13 @@ static void __init imx6sl_clocks_init(struct device_node *ccm_node)
 	clk_set_parent(clks[IMX6SL_CLK_LCDIF_AXI_SEL],
 		       clks[IMX6SL_CLK_PLL2_PFD2]);
 
+	/* Configure EPDC clocks */
+	clk_set_parent(clks[IMX6SL_CLK_EPDC_PIX_SEL],
+		clks[IMX6SL_CLK_PLL5_VIDEO_DIV]);
+	clk_set_parent(clks[IMX6SL_CLK_EPDC_AXI_SEL],
+		clks[IMX6SL_CLK_PLL2_PFD2]);
+	clk_set_rate(clks[IMX6SL_CLK_EPDC_AXI], 200000000);
+
 	imx_register_uart_clocks(uart_clks);
 }
 CLK_OF_DECLARE(imx6sl, "fsl,imx6sl-ccm", imx6sl_clocks_init);
