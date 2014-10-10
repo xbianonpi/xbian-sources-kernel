@@ -722,7 +722,7 @@ static void sdma_tasklet(unsigned long data)
 	unsigned long flags;
 
 	spin_lock_irqsave(&sdmac->lock, flags);
-	if (sdmac->status != DMA_IN_PROGRESS) {
+	if (sdmac->status != DMA_IN_PROGRESS && sdmac->flags != SDMA_MODE_LOOP) {
 		spin_unlock_irqrestore(&sdmac->lock, flags);
 		return;
 	}
@@ -763,7 +763,7 @@ static irqreturn_t sdma_int_handler(int irq, void *dev_id)
 			sdma_update_channel_loop(sdmac);
 
 		spin_lock_irqsave(&sdmac->lock, flags);
-		if (sdmac->status == DMA_IN_PROGRESS)
+		if (sdmac->status == DMA_IN_PROGRESS || sdmac->flags == SDMA_MODE_LOOP)
 			tasklet_schedule(&sdmac->tasklet);
 		spin_unlock_irqrestore(&sdmac->lock, flags);
 
@@ -1544,16 +1544,7 @@ static int sdma_config(struct dma_chan *chan,
 {
 	struct sdma_channel *sdmac = to_sdma_chan(chan);
 
-	if (dmaengine_cfg->direction == DMA_DEV_TO_DEV) {
-		sdmac->per_address = dmaengine_cfg->src_addr;
-		sdmac->per_address2 = dmaengine_cfg->dst_addr;
-		sdmac->watermark_level = 0;
-		sdmac->watermark_level |=
-		dmaengine_cfg->src_maxburst;
-		sdmac->watermark_level |=
-			dmaengine_cfg->dst_maxburst << 16;
-		sdmac->word_size = dmaengine_cfg->dst_addr_width;
-	} else if (dmaengine_cfg->direction == DMA_DEV_TO_MEM) {
+	if (dmaengine_cfg->direction == DMA_DEV_TO_MEM) {
 		sdmac->per_address = dmaengine_cfg->src_addr;
 		sdmac->watermark_level = dmaengine_cfg->src_maxburst *
 			dmaengine_cfg->src_addr_width;
