@@ -2901,7 +2901,6 @@ fec_enet_close(struct net_device *ndev)
 		imx6q_cpuidle_fec_irqs_unused();
 
 	fec_enet_clk_enable(ndev, false);
-	pm_qos_remove_request(&ndev->pm_qos_req);
 	pinctrl_pm_select_sleep_state(&fep->pdev->dev);
 	pm_runtime_mark_last_busy(&fep->pdev->dev);
 	pm_runtime_put_autosuspend(&fep->pdev->dev);
