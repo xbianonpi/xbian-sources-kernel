@@ -905,7 +905,7 @@ static int busfreq_probe(struct platform_device *pdev)
 	ultra_low_bus_freq_mode = 0;
 
 #ifdef CONFIG_ARM_IMX6Q_CPUFREQ
-	bus_freq_scaling_is_active = 1;
+	bus_freq_scaling_is_active = 0;
 	bus_freq_scaling_initialized = 1;
 
 	ddr_low_rate = LPAPM_CLK;
