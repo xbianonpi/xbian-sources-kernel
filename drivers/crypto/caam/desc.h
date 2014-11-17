@@ -1657,4 +1657,8 @@ struct sec4_sg_entry {
 #define XCBC_MAC_BLOCK_WORDS  16
 
 
+#define ARC4_BLOCK_SIZE       1
+#define ARC4_MAX_KEY_SIZE     256
+#define ARC4_MIN_KEY_SIZE     1
+
 #endif /* DESC_H */

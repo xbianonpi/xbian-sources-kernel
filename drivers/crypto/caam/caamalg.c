@@ -2078,7 +2078,7 @@ static struct caam_alg_template driver_algs[] = {
 			.max_keysize = ARC4_MAX_KEY_SIZE,
 			.ivsize = ARC4_BLOCK_SIZE,
 		},
-	.class1_alg_type = OP_ALG_ALGSEL_ARC4 | OP_ALG_AAI_ECB
+		.class1_alg_type = OP_ALG_ALGSEL_ARC4 | OP_ALG_AAI_ECB
 	},
 	{
 		.name = "ecb(aes)",
