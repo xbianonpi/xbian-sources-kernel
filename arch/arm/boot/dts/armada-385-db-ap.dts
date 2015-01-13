@@ -187,6 +187,21 @@
 				marvell,nand-keep-config;
 				marvell,nand-enable-arbiter;
 				nand-on-flash-bbt;
+
+				mtd0@00000000 {
+					label = "u-boot";
+					reg = <0x00000000 0x00800000>;
+				};
+
+				mtd1@00800000 {
+					label = "kernel";
+					reg = <0x00800000 0x00800000>;
+				};
+
+				mtd2@01000000 {
+					label = "ubi";
+					reg = <0x01000000 0x3f000000>;
+				};
 			};
 
 			usb3@f0000 {
