@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2014 by Vivante Corp.
+*    Copyright (C) 2005 - 2015 by Vivante Corp.
 *
 *    This program is free software; you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -2084,16 +2084,16 @@ gckEVENT_Notify(
 
         if (pending & 0x80000000)
         {
-            gctUINT32 AQAxiStatus = 0;
-            gckOS_ReadRegisterEx(Event->os, Event->kernel->hardware->core, 0xC, &AQAxiStatus);
-
-            gcmkPRINT("GPU[%d]: AXI BUS ERROR, AQAxiStatus=0x%x\n", Event->kernel->hardware->core, AQAxiStatus);
+            gcmkPRINT("[galcore]: AXI BUS ERROR");
+            gckHARDWARE_DumpGPUState(Event->kernel->hardware);
             pending &= 0x7FFFFFFF;
         }
 
         if (pending & 0x40000000)
         {
             gckHARDWARE_DumpMMUException(Event->kernel->hardware);
+
+            gckHARDWARE_DumpGPUState(Event->kernel->hardware);
 
             pending &= 0xBFFFFFFF;
         }
@@ -2632,7 +2632,7 @@ gceSTATUS
 gckEVENT_Stop(
     IN gckEVENT Event,
     IN gctUINT32 ProcessID,
-    IN gctPHYS_ADDR Handle,
+    IN gctUINT32 Handle,
     IN gctPOINTER Logical,
     IN gctSIGNAL Signal,
     IN OUT gctUINT32 * waitSize
