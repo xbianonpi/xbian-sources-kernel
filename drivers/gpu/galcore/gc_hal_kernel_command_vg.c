@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2014 by Vivante Corp.
+*    Copyright (C) 2005 - 2015 by Vivante Corp.
 *
 *    This program is free software; you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -26,6 +26,16 @@
 #include "gc_hal_kernel_hardware_command_vg.h"
 
 #define _GC_OBJ_ZONE            gcvZONE_COMMAND
+
+#ifdef __QNXNTO__
+extern gceSTATUS
+drv_signal_mgr_add(
+    gctUINT32 Pid,
+    gctINT32 Coid,
+    gctINT32 Rcvid,
+    gctUINT64 Signal,
+    gctPOINTER *Handle);
+#endif
 
 /******************************************************************************\
 *********************************** Debugging **********************************
@@ -941,7 +951,7 @@ _HardwareToKernel(
     }
     else
     {
-        nodePhysical = Node->Virtual.physicalAddress;
+        gcmkSAFECASTPHYSADDRT(nodePhysical, Node->Virtual.physicalAddress);
         bytes = Node->Virtual.bytes;
         logical = &Node->Virtual.kernelVirtual;
     }
@@ -1041,6 +1051,7 @@ _AllocateLinear(
     gctPHYS_ADDR physical;
     gctUINT32 address;
     gctSIZE_T size = Size;
+    gctPHYS_ADDR_T paddr;
 
     do
     {
@@ -1052,7 +1063,9 @@ _AllocateLinear(
             &logical
             ));
 
-        gcmkERR_BREAK(gckOS_GetPhysicalAddress(Command->os, logical, &address));
+        gcmkERR_BREAK(gckOS_GetPhysicalAddress(Command->os, logical, &paddr));
+
+        gcmkSAFECASTPHYSADDRT(address, paddr);
 
         /* Set return values. */
         * Node    = physical;

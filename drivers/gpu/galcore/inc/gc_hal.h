@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2014 by Vivante Corp.
+*    Copyright (C) 2005 - 2015 by Vivante Corp.
 *
 *    This program is free software; you can redistribute it and/or modify
 *    it under the terms of the GNU General Public License as published by
@@ -188,9 +188,9 @@ gceCORE;
 
 #define gcdMAX_GPU_COUNT               3
 
-#define gcdMAX_SURF_LAYER              4
+#define gcdMAX_SURF_LAYERS              4
 
-#define gcdMAX_DRAW_BUFFERS            4
+#define gcdMAX_DRAW_BUFFERS            8
 
 /*******************************************************************************
 **
@@ -460,7 +460,7 @@ gceSTATUS
 gckOS_GetPhysicalAddress(
     IN gckOS Os,
     IN gctPOINTER Logical,
-    OUT gctUINT32 * Address
+    OUT gctPHYS_ADDR_T * Address
     );
 
 /* Get the physical address of a corresponding user logical address. */
@@ -468,16 +468,7 @@ gceSTATUS
 gckOS_UserLogicalToPhysical(
     IN gckOS Os,
     IN gctPOINTER Logical,
-    OUT gctUINT32 * Address
-    );
-
-/* Get the physical address of a corresponding logical address. */
-gceSTATUS
-gckOS_GetPhysicalAddressProcess(
-    IN gckOS Os,
-    IN gctPOINTER Logical,
-    IN gctUINT32 ProcessID,
-    OUT gctUINT32 * Address
+    OUT gctUINT64 * Address
     );
 
 /* Map physical memory. */
@@ -502,7 +493,7 @@ gceSTATUS
 gckOS_PhysicalToPhysicalAddress(
     IN gckOS Os,
     IN gctPOINTER Physical,
-    OUT gctUINT32 * PhysicalAddress
+    OUT gctPHYS_ADDR_T * PhysicalAddress
     );
 
 /* Read data from a hardware register. */
@@ -584,13 +575,6 @@ gckOS_UnmapUserLogical(
     IN gctPHYS_ADDR Physical,
     IN gctSIZE_T Bytes,
     IN gctPOINTER Logical
-    );
-
-/* Create a new mutex. */
-gceSTATUS
-gckOS_CreateMutex(
-    IN gckOS Os,
-    OUT gctPOINTER * Mutex
     );
 
 /* Delete a mutex. */
@@ -1089,6 +1073,20 @@ gckOS_WaitSignal(
     IN gctUINT32 Wait
     );
 
+#ifdef __QNXNTO__
+gceSTATUS
+gckOS_SignalPulse(
+    IN gckOS Os,
+    IN gctSIGNAL Signal
+    );
+
+gceSTATUS
+gckOS_SignalPending(
+    IN gckOS Os,
+    IN gctSIGNAL Signal
+    );
+#endif
+
 /* Map a user signal to the kernel space. */
 gceSTATUS
 gckOS_MapSignal(
@@ -1230,7 +1228,7 @@ gckOS_CacheClean(
     gckOS Os,
     gctUINT32 ProcessID,
     gctPHYS_ADDR Handle,
-    gctUINT32 Physical,
+    gctPHYS_ADDR_T Physical,
     gctPOINTER Logical,
     gctSIZE_T Bytes
     );
@@ -1240,7 +1238,7 @@ gckOS_CacheFlush(
     gckOS Os,
     gctUINT32 ProcessID,
     gctPHYS_ADDR Handle,
-    gctUINT32 Physical,
+    gctPHYS_ADDR_T Physical,
     gctPOINTER Logical,
     gctSIZE_T Bytes
     );
@@ -1250,7 +1248,7 @@ gckOS_CacheInvalidate(
     gckOS Os,
     gctUINT32 ProcessID,
     gctPHYS_ADDR Handle,
-    gctUINT32 Physical,
+    gctPHYS_ADDR_T Physical,
     gctPOINTER Logical,
     gctSIZE_T Bytes
     );
@@ -1258,8 +1256,8 @@ gckOS_CacheInvalidate(
 gceSTATUS
 gckOS_CPUPhysicalToGPUPhysical(
     IN gckOS Os,
-    IN gctUINT32 CPUPhysical,
-    IN gctUINT32_PTR GPUPhysical
+    IN gctPHYS_ADDR_T CPUPhysical,
+    IN gctPHYS_ADDR_T * GPUPhysical
     );
 
 gceSTATUS
@@ -1970,7 +1968,9 @@ gckHARDWARE_Link(
     IN gctPOINTER Logical,
     IN gctUINT32 FetchAddress,
     IN gctUINT32 FetchSize,
-    IN OUT gctUINT32 * Bytes
+    IN OUT gctUINT32 * Bytes,
+    OUT gctUINT32 * Low,
+    OUT gctUINT32 * High
     );
 
 /* Add an EVENT command in the command queue. */
@@ -2540,7 +2540,7 @@ gceSTATUS
 gckCOMMAND_AddressInKernelCommandBuffer(
     IN gckCOMMAND Command,
     IN gctUINT32 Address,
-    OUT gctBOOL *In
+    OUT gctPOINTER * Pointer
     );
 
 /******************************************************************************\
@@ -2593,7 +2593,7 @@ gckMMU_FreePages(
 gceSTATUS
 gckMMU_SetPage(
    IN gckMMU Mmu,
-   IN gctUINT32 PageAddress,
+   IN gctPHYS_ADDR_T PageAddress,
    IN gctUINT32 *PageEntry
    );
 
