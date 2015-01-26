@@ -2095,6 +2095,8 @@ static long mxc_v4l_do_ioctl(struct file *file,
 	/*!
 	 * V4l2 VIDIOC_S_FMT ioctl
 	 */
+	/* XXX: workaround for gstreamer */
+	case VIDIOC_TRY_FMT:
 	case VIDIOC_S_FMT: {
 		struct v4l2_format *sf = arg;
 		pr_debug("   case VIDIOC_S_FMT\n");
@@ -2560,7 +2562,8 @@ static long mxc_v4l_do_ioctl(struct file *file,
 		break;
 	}
 
-	case VIDIOC_TRY_FMT:
+	/* XXX: workaround for gstreamer */
+/*	case VIDIOC_TRY_FMT: */
 	case VIDIOC_QUERYCTRL:
 	case VIDIOC_G_TUNER:
 	case VIDIOC_S_TUNER:
