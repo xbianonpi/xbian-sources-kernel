@@ -125,6 +125,10 @@ static int ar8031_phy_fixup(struct phy_device *dev)
 {
 	u16 val;
 
+	/* Set RGMII IO voltage to 1.8V */
+	phy_write(dev, 0x1d, 0x1f);
+	phy_write(dev, 0x1e, 0x8);
+
 	/* disable phy AR8031 SmartEEE function. */
 	phy_write(dev, 0xd, 0x3);
 	phy_write(dev, 0xe, 0x805d);
@@ -321,6 +325,18 @@ static const struct of_dev_auxdata imx6q_auxdata_lookup[] __initconst = {
 	{ /* sentinel */ }
 };
 
+static void __init imx6q_enet_clk_sel(void)
+{
+	struct regmap *gpr;
+
+	gpr = syscon_regmap_lookup_by_compatible("fsl,imx6q-iomuxc-gpr");
+	if (!IS_ERR(gpr))
+		regmap_update_bits(gpr, IOMUXC_GPR5,
+				   IMX6Q_GPR5_ENET_TX_CLK_SEL, IMX6Q_GPR5_ENET_TX_CLK_SEL);
+	else
+		pr_err("failed to find fsl,imx6q-iomux-gpr regmap\n");
+}
+
 static void imx6q_fec_sleep_enable(int enabled)
 {
 	struct regmap *gpr;
@@ -345,6 +361,9 @@ static void __init imx6q_enet_plt_init(void)
 	np = of_find_node_by_path("/soc/aips-bus@02100000/ethernet@02188000");
 	if (np && of_get_property(np, "fsl,magic-packet", NULL))
 		fec_pdata.sleep_mode_enable = imx6q_fec_sleep_enable;
+
+	if (cpu_is_imx6q() && imx_get_soc_revision() == IMX_CHIP_REVISION_2_0)
+		imx6q_enet_clk_sel();
 }
 
 static void __init imx6q_init_machine(void)
