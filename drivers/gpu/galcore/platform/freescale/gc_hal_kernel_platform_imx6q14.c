@@ -373,6 +373,9 @@ gckPLATFORM_AdjustParam(
     Args->gpu3DMinClock = initgpu3DMinClock;
 #endif
 
+    if (Args->physSize == 0)
+        Args->physSize = 0x80000000;
+
     return gcvSTATUS_OK;
 }
 
