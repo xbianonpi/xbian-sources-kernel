@@ -48,3 +48,7 @@
 	model = "SolidRun HummingBoard Solo/DualLite";
 	compatible = "solidrun,hummingboard/dl", "fsl,imx6dl";
 };
+
+&usdhc1 {
+	status = "disabled";
+};

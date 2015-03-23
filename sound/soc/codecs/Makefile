@@ -91,6 +91,7 @@ snd-soc-ml26124-objs := ml26124.o
 snd-soc-msm8916-analog-objs := msm8916-wcd-analog.o
 snd-soc-msm8916-digital-objs := msm8916-wcd-digital.o
 snd-soc-nau8810-objs := nau8810.o
+snd-soc-hdmi-codec-objs := hdmi.o
 snd-soc-nau8825-objs := nau8825.o
 snd-soc-hdmi-codec-objs := hdmi-codec.o
 snd-soc-pcm1681-objs := pcm1681.o
