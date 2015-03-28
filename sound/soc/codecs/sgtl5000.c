@@ -825,6 +825,10 @@ static int ldo_regulator_disable(struct regulator_dev *dev)
 	struct snd_soc_codec *codec = (struct snd_soc_codec *)ldo->codec_data;
 
 	snd_soc_update_bits(codec, SGTL5000_CHIP_ANA_POWER,
+				SGTL5000_LINREG_SIMPLE_POWERUP,
+				SGTL5000_LINREG_SIMPLE_POWERUP);
+
+	snd_soc_update_bits(codec, SGTL5000_CHIP_ANA_POWER,
 				SGTL5000_LINEREG_D_POWERUP,
 				0);
 
