@@ -261,7 +261,7 @@ struct btrfs_ioctl_fs_info_args {
  * Note we don't actually support it, we're just reserving the
  * number
  */
-#define BTRFS_FEATURE_INCOMPAT_COMPRESS_LZOv2	(1ULL << 4)
+#define BTRFS_FEATURE_INCOMPAT_COMPRESS_LZ4	(1ULL << 4)
 
 /*
  * older kernels tried to do bigger metadata blocks, but the

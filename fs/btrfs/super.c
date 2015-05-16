@@ -519,6 +519,22 @@ int btrfs_parse_options(struct btrfs_fs_info *info, char *options,
 				btrfs_clear_opt(info->mount_opt, FORCE_COMPRESS);
 				compress_force = false;
 				no_compress++;
+			} else if (strcmp(args[0].from, "lz4") == 0) {
+				compress_type = "lz4";
+				info->compress_type = BTRFS_COMPRESS_LZ4;
+				btrfs_set_opt(info->mount_opt, COMPRESS);
+				btrfs_clear_opt(info->mount_opt, NODATACOW);
+				btrfs_clear_opt(info->mount_opt, NODATASUM);
+				btrfs_set_fs_incompat(info, COMPRESS_LZ4);
+				no_compress = 0;
+			} else if (strcmp(args[0].from, "lz4hc") == 0) {
+				compress_type = "lz4hc";
+				info->compress_type = BTRFS_COMPRESS_LZ4HC;
+				btrfs_set_opt(info->mount_opt, COMPRESS);
+				btrfs_clear_opt(info->mount_opt, NODATACOW);
+				btrfs_clear_opt(info->mount_opt, NODATASUM);
+				btrfs_set_fs_incompat(info, COMPRESS_LZ4);
+				no_compress = 0;
 			} else {
 				ret = -EINVAL;
 				goto out;
@@ -1230,6 +1246,12 @@ static int btrfs_show_options(struct seq_file *seq, struct dentry *dentry)
 	if (btrfs_test_opt(info, COMPRESS)) {
 		if (info->compress_type == BTRFS_COMPRESS_ZLIB)
 			compress_type = "zlib";
+		else if (info->compress_type == BTRFS_COMPRESS_LZ4)
+			compress_type = "lz4";
+		else if (info->compress_type == BTRFS_COMPRESS_LZ4HC)
+			compress_type = "lz4hc";
+ 		else if (info->compress_type == BTRFS_COMPRESS_LZO)
+ 			compress_type = "lzo";
 		else
 			compress_type = "lzo";
 		if (btrfs_test_opt(info, FORCE_COMPRESS))
