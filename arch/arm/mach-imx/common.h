@@ -78,6 +78,8 @@ enum mx3_cpu_pwr_mode {
 	MX3_SLEEP,
 };
 
+extern int vpu352;
+
 void mx3_cpu_lp_set(enum mx3_cpu_pwr_mode mode);
 
 void imx_enable_cpu(int cpu, bool enable);
