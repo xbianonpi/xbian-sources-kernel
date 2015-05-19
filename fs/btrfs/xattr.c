@@ -413,6 +413,7 @@ ssize_t btrfs_getxattr(struct dentry *dentry, const char *name,
 	ret = btrfs_is_valid_xattr(name);
 	if (ret)
 		return ret;
+
 	return __btrfs_getxattr(d_inode(dentry), name, buffer, size);
 }
 
