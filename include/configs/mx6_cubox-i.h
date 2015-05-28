@@ -96,6 +96,11 @@
 #define CONFIG_DOS_PARTITION
 #define CONFIG_FS_EXT4
 #define CONFIG_FS_FAT
+#define CONFIG_FS_BTR
+#define CONFIG_FS_ZFS
+#define CONFIG_EFI_PARTITION
+#define CONFIG_CMD_BTR
+#define CONFIG_CMD_ZFS
 #define CONFIG_CMD_FS_GENERIC
 
 /* Ethernet Configuration */
@@ -340,11 +345,11 @@ extern char *config_sys_prompt;
 #define CONFIG_SYS_PROMPT_MAX_CHARS	32
 #define CONFIG_SYS_PROMPT		config_sys_prompt
 #define CONFIG_AUTO_COMPLETE
-#define CONFIG_SYS_CBSIZE		1024
+#define CONFIG_SYS_CBSIZE		2048
 
 /* Print Buffer Size */
 #define CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE + CONFIG_SYS_PROMPT_MAX_CHARS + 16)
-#define CONFIG_SYS_MAXARGS	       16
+#define CONFIG_SYS_MAXARGS		64
 #define CONFIG_SYS_BARGSIZE CONFIG_SYS_CBSIZE
 
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
@@ -379,6 +384,7 @@ extern char *config_sys_prompt;
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_CMD_CACHE
+
 #endif
 
 #endif			       /* __CONFIG_H * */
