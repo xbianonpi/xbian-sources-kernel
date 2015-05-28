@@ -825,14 +825,14 @@ struct brcmf_if *brcmf_add_if(struct brcmf_pub *drvr, s32 bssidx, s32 ifidx,
 	 * in case we missed the BRCMF_E_IF_DEL event.
 	 */
 	if (ifp) {
-		brcmf_err("ERROR: netdev:%s already exists\n",
-			  ifp->ndev->name);
 		if (ifidx) {
+			brcmf_err("ERROR: netdev:%s already exists, deleting old interface\n",
+				  ifp->ndev->name);
 			netif_stop_queue(ifp->ndev);
 			brcmf_net_detach(ifp->ndev);
 			drvr->iflist[bssidx] = NULL;
 		} else {
-			brcmf_err("ignore IF event\n");
+			brcmf_dbg(EVENT, "ignore IF event\n");
 			return ERR_PTR(-EINVAL);
 		}
 	}
