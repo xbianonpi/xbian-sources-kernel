@@ -4624,7 +4624,9 @@ gckOS_MapUserMemory(
                 if (vma && (vma->vm_flags & VM_PFNMAP))
                 {
                     pte_t       * pte;
+#ifndef CONFIG_DEBUG_SPINLOCK
                     spinlock_t  * ptl;
+#endif
                     gctUINTPTR_T logical = memory;
 
                     for (i = 0; i < pageCount; i++)
@@ -4636,7 +4638,13 @@ gckOS_MapUserMemory(
                         if (pud)
                         {
                             pmd_t * pmd = pmd_offset(pud, logical);
+#ifndef CONFIG_DEBUG_SPINLOCK
                             pte = pte_offset_map_lock(current->mm, pmd, logical, &ptl);
+#else
+                            spin_lock(&current->mm->page_table_lock);
+
+                            pte = pte_offset_map(pmd, logical);
+#endif
                             if (!pte)
                             {
                                 gcmkONERROR(gcvSTATUS_OUT_OF_RESOURCES);
@@ -4651,7 +4659,11 @@ gckOS_MapUserMemory(
                             pfn = pte_pfn(*pte);
                         else
                             pfn = ~0UL; 
+#ifndef CONFIG_DEBUG_SPINLOCK
                         pte_unmap_unlock(pte, ptl);
+#else
+                        spin_unlock(&current->mm->page_table_lock);
+#endif
 
                         if (pfn == ~0UL || !pfn_valid(pfn))
                             gcmkONERROR(gcvSTATUS_OUT_OF_RESOURCES);
