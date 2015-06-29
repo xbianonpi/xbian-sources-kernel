@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2015 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014  Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -44,6 +78,7 @@
 #include <linux/seq_file.h>
 #include "gc_hal_kernel_linux.h"
 #include "gc_hal_kernel.h"
+#include "gc_hal_kernel_debug.h"
 
 /*
    Prequsite:
@@ -105,6 +140,9 @@ typedef va_list gctDBGARGS ;
       gcmkARGS_END(__arguments__); \
   }
 
+
+gcmkDECLARE_LOCK(traceLock);
+
 /* Debug File System Node Struct. */
 struct _gcsDEBUGFS_Node
 {
@@ -125,6 +163,9 @@ struct _gcsDEBUGFS_Node
     int write_point ; /* Offset in circ. buffer of newest data */
     int offset ; /* Byte number of read_point in the stream */
     struct _gcsDEBUGFS_Node *next ;
+
+    caddr_t temp;
+    int tempSize;
 };
 
 /* amount of data in the queue */
@@ -291,33 +332,30 @@ _ReadFromNode (
     caddr_t retval ;
     int bytes_copied = 0 , n , start_point , remaining ;
 
-    /* is the user trying to read data that has already scrolled off? */
-    if ( *Offset < Node->offset )
-    {
-        *Offset = Node->offset ;
-    }
-
-    /* is the user trying to read past EOF? */
-    if ( *Offset >= gcmkNODE_FIRST_EMPTY_BYTE ( Node ) )
-    {
-        return NULL ;
-    }
-
     /* find the smaller of the total bytes we have available and what
      * the user is asking for */
-
-    *Length = gcmkMIN ( *Length , gcmkNODE_FIRST_EMPTY_BYTE ( Node ) - *Offset ) ;
+    *Length = gcmkMIN ( *Length , gcmkNODE_QLEN(Node) ) ;
 
     remaining = * Length ;
 
-    /* figure out where to start based on user's Offset */
-    start_point = Node->read_point + ( *Offset - Node->offset ) ;
-
-    start_point = start_point % Node->size ;
+    /* Get start point. */
+    start_point = Node->read_point;
 
     /* allocate memory to return */
-    if ( ( retval = kmalloc ( sizeof (char ) * remaining , GFP_KERNEL ) ) == NULL )
-        return NULL ;
+    if (remaining > Node->tempSize)
+    {
+        kfree(Node->temp);
+
+        if ( ( retval = kmalloc ( sizeof (char ) * remaining , GFP_KERNEL ) ) == NULL )
+            return NULL;
+
+        Node->temp = retval;
+        Node->tempSize = remaining;
+    }
+    else
+    {
+        retval = Node->temp;
+    }
 
     /* copy the (possibly noncontiguous) data to our buffer */
     while ( remaining )
@@ -330,7 +368,7 @@ _ReadFromNode (
     }
 
     /* advance user's file pointer */
-    *Offset += * Length ;
+    Node->read_point = (Node->read_point + * Length) % Node->size ;
 
     return retval ;
 }
@@ -357,15 +395,6 @@ _WriteToNode (
     if ( Length + gcmkNODE_QLEN ( Node ) >= ( Node->size - 1 ) )
     {
         overflow = 1 ;
-
-        /* in case of overflow, figure out where the new buffer will
-         * begin.  we start by figuring out where the current buffer ENDS:
-         * node->parent->offset +  gcmkNODE_QLEN.    we then advance the end-offset
-         * by the Length of the current write, and work backwards to
-         * figure out what the oldest unoverwritten data will be (i.e.,
-         * size of the buffer). */
-        Node->offset = Node->offset + gcmkNODE_QLEN ( Node ) + Length
-                - Node->size + 1 ;
     }
 
     while ( Length )
@@ -430,7 +459,6 @@ _AppendString (
                 IN int Length
                 )
 {
-    caddr_t message = NULL ;
     int n ;
 
     /* if the message is longer than the buffer, just take the beginning
@@ -438,16 +466,13 @@ _AppendString (
      * before we wrap around and obliterate it */
     n = gcmkMIN ( Length , Node->size - 1 ) ;
 
-    /* make sure we have the memory for it */
-    if ( ( message = kmalloc ( n , GFP_ATOMIC ) ) == NULL )
-        return - ENOMEM ;
-
-    /* copy into our temp buffer */
-    memcpy ( message , String , n ) ;
+    gcmkLOCKSECTION(traceLock);
 
     /* now copy it into the circular buffer and free our temp copy */
-    _WriteToNode ( Node , message , n ) ;
-    kfree ( message ) ;
+    _WriteToNode ( Node , (caddr_t)String , n ) ;
+
+    gcmkUNLOCKSECTION(traceLock);
+
     return n ;
 }
 
@@ -469,12 +494,8 @@ _DebugFSPrint (
     int len ;
     ssize_t res=0;
 
-   if(in_interrupt())
-    {
-        return - ERESTARTSYS ;
-    }
-
     len = vsnprintf ( buffer , sizeof (buffer ) , Message , *( va_list * ) Arguments ) ;
+
     buffer[len] = '\0' ;
 
     /* Add end-of-line if missing. */
@@ -483,8 +504,11 @@ _DebugFSPrint (
         buffer[len ++] = '\n' ;
         buffer[len] = '\0' ;
     }
+
     res = _AppendString ( gc_dbgfs.currentNode , buffer , len ) ;
+
     wake_up ( gcmkNODE_READQ ( gc_dbgfs.currentNode ) ) ; /* blocked in read*/
+
     return res;
 }
 
@@ -540,19 +564,30 @@ _DebugFSRead (
         return - EIO ;
     }
 
+    gcmkLOCKSECTION(traceLock);
+
     /* wait until there's data available (unless we do nonblocking reads) */
-    while ( *offset >= gcmkNODE_FIRST_EMPTY_BYTE ( node ) )
+    while (!gcmkNODE_QLEN(node))
     {
+        gcmkUNLOCKSECTION(traceLock);
+
         if ( file->f_flags & O_NONBLOCK )
         {
             return - EAGAIN ;
         }
+
         if ( wait_event_interruptible ( ( *( gcmkNODE_READQ ( node ) ) ) , ( *offset < gcmkNODE_FIRST_EMPTY_BYTE ( node ) ) ) )
         {
             return - ERESTARTSYS ; /* signal: tell the fs layer to handle it */
         }
+
+        gcmkLOCKSECTION(traceLock);
     }
+
     data_to_return = _ReadFromNode ( node , &length , offset ) ;
+
+    gcmkUNLOCKSECTION(traceLock);
+
     if ( data_to_return == NULL )
     {
         retval = 0 ;
@@ -566,7 +601,6 @@ _DebugFSRead (
     {
         retval = length ;
     }
-    kfree ( data_to_return ) ;
 unlock:
     wake_up_interruptible ( gcmkNODE_WRITEQ ( node ) ) ;
     return retval ;
@@ -994,6 +1028,9 @@ gckDEBUGFS_CreateNode (
         if ( ( node->data = ( char * ) vmalloc ( sizeof (char ) * node->size ) ) == NULL )
             goto data_malloc_failed ;
 
+        node->tempSize = 0;
+        node->temp = NULL;
+
         /*creating the file*/
         node->filen = debugfs_create_file(NodeName, S_IRUGO|S_IWUSR, node->parent, NULL,
                                           &debugfs_operations);
@@ -1044,6 +1081,8 @@ gckDEBUGFS_FreeNode (
 
     /*free data*/
     vfree ( Node->data ) ;
+
+    kfree(Node->temp);
 
     /*Close Debug fs*/
     if (Node->vidmem)

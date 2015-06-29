@@ -1,20 +1,54 @@
 /****************************************************************************
 *
-*    Copyright (C) 2005 - 2015 by Vivante Corp.
+*    The MIT License (MIT)
 *
-*    This program is free software; you can redistribute it and/or modify
-*    it under the terms of the GNU General Public License as published by
-*    the Free Software Foundation; either version 2 of the license, or
-*    (at your option) any later version.
+*    Copyright (c) 2014 Vivante Corporation
+*
+*    Permission is hereby granted, free of charge, to any person obtaining a
+*    copy of this software and associated documentation files (the "Software"),
+*    to deal in the Software without restriction, including without limitation
+*    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+*    and/or sell copies of the Software, and to permit persons to whom the
+*    Software is furnished to do so, subject to the following conditions:
+*
+*    The above copyright notice and this permission notice shall be included in
+*    all copies or substantial portions of the Software.
+*
+*    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+*    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+*    DEALINGS IN THE SOFTWARE.
+*
+*****************************************************************************
+*
+*    The GPL License (GPL)
+*
+*    Copyright (C) 2014  Vivante Corporation
+*
+*    This program is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU General Public License
+*    as published by the Free Software Foundation; either version 2
+*    of the License, or (at your option) any later version.
 *
 *    This program is distributed in the hope that it will be useful,
 *    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *    GNU General Public License for more details.
 *
 *    You should have received a copy of the GNU General Public License
-*    along with this program; if not write to the Free Software
-*    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*    along with this program; if not, write to the Free Software Foundation,
+*    Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*
+*****************************************************************************
+*
+*    Note: This software is released under dual MIT and GPL licenses. A
+*    recipient may use this file under the terms of either the MIT license or
+*    GPL License. If you wish to use only one license not the other, you can
+*    indicate your decision by deleting one of the above license notices in your
+*    version of this file.
 *
 *****************************************************************************/
 
@@ -183,12 +217,16 @@ typedef enum _gceCORE
     gcvCORE_MAJOR       = 0x0,
     gcvCORE_2D          = 0x1,
     gcvCORE_VG          = 0x2,
+#if gcdENABLE_DEC_COMPRESSION
+    gcvCORE_DEC         = 0x4,
+#endif
+    gcvCORE_COUNT
 }
 gceCORE;
 
-#define gcdMAX_GPU_COUNT               3
+#define gcdMAX_GPU_COUNT               gcvCORE_COUNT
 
-#define gcdMAX_SURF_LAYERS              4
+#define gcdMAX_SURF_LAYERS             4
 
 #define gcdMAX_DRAW_BUFFERS            8
 
@@ -1126,6 +1164,15 @@ gckOS_UnmapUserMemory(
     IN gctUINT32 Address
     );
 
+/* Wrap a user memory to gctPHYS_ADDR. */
+gceSTATUS
+gckOS_WrapMemory(
+    IN gckOS Os,
+    IN gcsUSER_MEMORY_DESC_PTR Desc,
+    OUT gctSIZE_T *Bytes,
+    OUT gctPHYS_ADDR * Physical
+    );
+
 /******************************************************************************\
 ************************** Android Native Fence Sync ***************************
 \******************************************************************************/
@@ -1178,6 +1225,14 @@ gckOS_CreateNativeFence(
     IN gctHANDLE Timeline,
     IN gctSYNC_POINT SyncPoint,
     OUT gctINT * FenceFD
+    );
+
+gceSTATUS
+gckOS_WaitNativeFence(
+    IN gckOS Os,
+    IN gctHANDLE Timeline,
+    IN gctINT FenceFD,
+    IN gctUINT32 Timeout
     );
 
 /* Create signal to be used in the user space. */
@@ -2270,6 +2325,17 @@ gckHARDWARE_SetMMUStates(
     IN OUT gctUINT32 * Bytes
     );
 
+gceSTATUS
+gckHARDWARE_QueryStateTimer(
+    IN gckHARDWARE Hardware,
+    OUT gctUINT64_PTR Start,
+    OUT gctUINT64_PTR End,
+    OUT gctUINT64_PTR On,
+    OUT gctUINT64_PTR Off,
+    OUT gctUINT64_PTR Idle,
+    OUT gctUINT64_PTR Suspend
+    );
+
 #if !gcdENABLE_VG
 /******************************************************************************\
 ***************************** gckINTERRUPT Object ******************************
@@ -2518,7 +2584,8 @@ gceSTATUS
 gckCOMMAND_Attach(
     IN gckCOMMAND Command,
     OUT gckCONTEXT * Context,
-    OUT gctSIZE_T * StateCount,
+    OUT gctSIZE_T * MaxState,
+    OUT gctUINT32 * NumStates,
     IN gctUINT32 ProcessID
     );
 
@@ -2635,12 +2702,10 @@ gckHARDWARE_UpdateContextProfile(
     );
 #endif
 
-#if VIVANTE_PROFILER_NEW
 gceSTATUS
 gckHARDWARE_InitProfiler(
     IN gckHARDWARE Hardware
     );
-#endif
 
 gceSTATUS
 gckOS_SignalQueryHardware(
