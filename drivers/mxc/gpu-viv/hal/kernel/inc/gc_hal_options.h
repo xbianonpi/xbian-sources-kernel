@@ -774,15 +774,6 @@
 #   define gcdUSE_TRIANGLE_STRIP_PATCH            1
 #endif
 
-/*
-    gcdENABLE_OUTER_CACHE_PATCH
-
-        Enable the outer cache patch.
-*/
-#ifndef gcdENABLE_OUTER_CACHE_PATCH
-#   define gcdENABLE_OUTER_CACHE_PATCH          0
-#endif
-
 #ifndef gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST
 #   ifdef ANDROID
 #      define  gcdANDROID_UNALIGNED_LINEAR_COMPOSITION_ADJUST    1
