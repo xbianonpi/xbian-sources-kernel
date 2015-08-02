@@ -53,8 +53,6 @@ static inline void imx_gpc_power_up_pu(bool flag) {}
 #include "gc_hal_kernel_sync.h"
 #endif
 
-#include "../../../../../arch/arm/mm/dma.h"
-
 #include <linux/regulator/consumer.h>
 #include <linux/clk.h>
 
@@ -4282,7 +4280,7 @@ gckOS_LockPages(
     unsigned long   pfn;
     gctINT          i;
 
-    gcmkHEADER_ARG("Os=0x%X Physical=0x%X Bytes=%lu", Os, Physical, Logical);
+    gcmkHEADER_ARG("Os=0x%X Physical=0x%X Bytes=%u", Os, Physical, Bytes);
 
     /* Verify the arguments. */
     gcmkVERIFY_OBJECT(Os, gcvOBJ_OS);
@@ -4461,7 +4459,6 @@ gckOS_LockPages(
     *Logical = mdlMap->vmaAddr;
 
     /* Return the page number according to the GPU page size. */
-    gcmkASSERT((PAGE_SIZE % 4096) == 0);
     gcmkASSERT((PAGE_SIZE / 4096) >= 1);
 
     *PageCount = mdl->numPages * (PAGE_SIZE / 4096);
@@ -6081,128 +6078,6 @@ gckOS_ZeroMemory(
 ********************************* Cache Control ********************************
 *******************************************************************************/
 
-#if !gcdCACHE_FUNCTION_UNIMPLEMENTED && defined(CONFIG_OUTER_CACHE)
-static inline gceSTATUS
-outer_func(
-    gceCACHEOPERATION Type,
-    unsigned long Start,
-    unsigned long End
-    )
-{
-    switch (Type)
-    {
-        case gcvCACHE_CLEAN:
-            outer_clean_range(Start, End);
-            break;
-        case gcvCACHE_INVALIDATE:
-            outer_inv_range(Start, End);
-            break;
-        case gcvCACHE_FLUSH:
-            outer_flush_range(Start, End);
-            break;
-        default:
-            return gcvSTATUS_INVALID_ARGUMENT;
-            break;
-    }
-    return gcvSTATUS_OK;
-}
-
-#if gcdENABLE_OUTER_CACHE_PATCH
-/*******************************************************************************
-**  _HandleOuterCache
-**
-**  Handle the outer cache for the specified addresses.
-**
-**  ARGUMENTS:
-**
-**      gckOS Os
-**          Pointer to gckOS object.
-**
-**      gctUINT32 ProcessID
-**          Process ID Logical belongs.
-**
-**      gctPHYS_ADDR Handle
-**          Physical address handle.  If gcvNULL it is video memory.
-**
-**      gctPOINTER Physical
-**          Physical address to flush.
-**
-**      gctPOINTER Logical
-**          Logical address to flush.
-**
-**      gctSIZE_T Bytes
-**          Size of the address range in bytes to flush.
-**
-**      gceOUTERCACHE_OPERATION Type
-**          Operation need to be execute.
-*/
-static gceSTATUS
-_HandleOuterCache(
-    IN gckOS Os,
-    IN gctUINT32 ProcessID,
-    IN gctPHYS_ADDR Handle,
-    IN gctPOINTER Physical,
-    IN gctPOINTER Logical,
-    IN gctSIZE_T Bytes,
-    IN gceCACHEOPERATION Type
-    )
-{
-    gceSTATUS status;
-    gctUINT32 i, pageNum;
-    unsigned long paddr;
-    gctPOINTER vaddr;
-
-    gcmkHEADER_ARG("Os=0x%X ProcessID=%d Handle=0x%X Logical=0x%X Bytes=%lu",
-                   Os, ProcessID, Handle, Logical, Bytes);
-
-    if (Physical != gcvNULL)
-    {
-        /* Non paged memory or gcvPOOL_USER surface */
-        paddr = (unsigned long) Physical;
-        gcmkONERROR(outer_func(Type, paddr, paddr + Bytes));
-    }
-    else if ((Handle == gcvNULL)
-    || (Handle != gcvNULL && ((PLINUX_MDL)Handle)->contiguous)
-    )
-    {
-        /* Video Memory or contiguous virtual memory */
-        gcmkONERROR(gckOS_GetPhysicalAddress(Os, Logical, (gctUINT32*)&paddr));
-        gcmkONERROR(outer_func(Type, paddr, paddr + Bytes));
-    }
-    else
-    {
-        /* Non contiguous virtual memory */
-        vaddr = (gctPOINTER)gcmALIGN_BASE((gctUINTPTR_T)Logical, PAGE_SIZE);
-        pageNum = GetPageCount(Bytes, 0);
-
-        for (i = 0; i < pageNum; i += 1)
-        {
-            gcmkONERROR(_ConvertLogical2Physical(
-                Os,
-                vaddr + PAGE_SIZE * i,
-                ProcessID,
-                (PLINUX_MDL)Handle,
-                (gctUINT32*)&paddr
-                ));
-
-            gcmkONERROR(outer_func(Type, paddr, paddr + PAGE_SIZE));
-        }
-    }
-
-    mb();
-
-    /* Success. */
-    gcmkFOOTER_NO();
-    return gcvSTATUS_OK;
-
-OnError:
-    /* Return the status. */
-    gcmkFOOTER();
-    return status;
-}
-#endif
-#endif
-
 /*******************************************************************************
 **  gckOS_CacheClean
 **
@@ -6248,41 +6123,11 @@ gckOS_CacheClean(
     gcmkVERIFY_ARGUMENT(Logical != gcvNULL);
     gcmkVERIFY_ARGUMENT(Bytes > 0);
 
-#if !gcdCACHE_FUNCTION_UNIMPLEMENTED
-#ifdef CONFIG_ARM
-
-    /* Inner cache. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35)
-    dmac_map_area(Logical, Bytes, DMA_TO_DEVICE);
-#      else
-    dmac_clean_range(Logical, Logical + Bytes);
-#      endif
-
-#if defined(CONFIG_OUTER_CACHE)
-    /* Outer cache. */
-#if gcdENABLE_OUTER_CACHE_PATCH
-    _HandleOuterCache(Os, ProcessID, Handle, Physical, Logical, Bytes, gcvCACHE_CLEAN);
-#else
-    outer_clean_range((unsigned long) Handle, (unsigned long) Handle + Bytes);
-#endif
-#endif
-
-#elif defined(CONFIG_MIPS)
-
-    dma_cache_wback((unsigned long) Logical, Bytes);
-
-#elif defined(CONFIG_PPC)
-
-    /* TODO */
-
-#else
     dma_sync_single_for_device(
               gcvNULL,
               (dma_addr_t)Physical,
               Bytes,
               DMA_TO_DEVICE);
-#endif
-#endif
 
     /* Success. */
     gcmkFOOTER_NO();
@@ -6331,37 +6176,11 @@ gckOS_CacheInvalidate(
     gcmkVERIFY_ARGUMENT(Logical != gcvNULL);
     gcmkVERIFY_ARGUMENT(Bytes > 0);
 
-#if !gcdCACHE_FUNCTION_UNIMPLEMENTED
-#ifdef CONFIG_ARM
-
-    /* Inner cache. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35)
-    dmac_map_area(Logical, Bytes, DMA_FROM_DEVICE);
-#      else
-    dmac_inv_range(Logical, Logical + Bytes);
-#      endif
-
-#if defined(CONFIG_OUTER_CACHE)
-    /* Outer cache. */
-#if gcdENABLE_OUTER_CACHE_PATCH
-    _HandleOuterCache(Os, ProcessID, Handle, Physical, Logical, Bytes, gcvCACHE_INVALIDATE);
-#else
-    outer_inv_range((unsigned long) Handle, (unsigned long) Handle + Bytes);
-#endif
-#endif
-
-#elif defined(CONFIG_MIPS)
-    dma_cache_inv((unsigned long) Logical, Bytes);
-#elif defined(CONFIG_PPC)
-    /* TODO */
-#else
     dma_sync_single_for_device(
               gcvNULL,
               (dma_addr_t)Physical,
               Bytes,
               DMA_FROM_DEVICE);
-#endif
-#endif
 
     /* Success. */
     gcmkFOOTER_NO();
@@ -6410,32 +6229,14 @@ gckOS_CacheFlush(
     gcmkVERIFY_ARGUMENT(Logical != gcvNULL);
     gcmkVERIFY_ARGUMENT(Bytes > 0);
 
-#if !gcdCACHE_FUNCTION_UNIMPLEMENTED
-#ifdef CONFIG_ARM
-    /* Inner cache. */
-    dmac_flush_range(Logical, Logical + Bytes);
-
-#if defined(CONFIG_OUTER_CACHE)
-    /* Outer cache. */
-#if gcdENABLE_OUTER_CACHE_PATCH
-    _HandleOuterCache(Os, ProcessID, Handle, Physical, Logical, Bytes, gcvCACHE_FLUSH);
-#else
-    outer_flush_range((unsigned long) Handle, (unsigned long) Handle + Bytes);
-#endif
-#endif
-
-#elif defined(CONFIG_MIPS)
-    dma_cache_wback_inv((unsigned long) Logical, Bytes);
-#elif defined(CONFIG_PPC)
-    /* TODO */
-#else
-    dma_sync_single_for_device(
-              gcvNULL,
-              (dma_addr_t)Physical,
-              Bytes,
-              DMA_BIDIRECTIONAL);
-#endif
-#endif
+    if (Physical != (void *)gcvINVALID_ADDRESS)
+    {
+        dma_sync_single_for_device(
+                  gcvNULL,
+                  (dma_addr_t)Physical,
+                  Bytes,
+                  DMA_BIDIRECTIONAL);
+    }
 
     /* Success. */
     gcmkFOOTER_NO();
