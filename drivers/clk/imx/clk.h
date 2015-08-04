@@ -104,13 +104,6 @@ static inline struct clk *imx_clk_fixed(const char *name, int rate)
 	return clk_register_fixed_rate(NULL, name, NULL, 0, rate);
 }
 
-static inline struct clk *imx_clk_fixed_factor(const char *name,
-		const char *parent, unsigned int mult, unsigned int div)
-{
-	return clk_register_fixed_factor(NULL, name, parent,
-			CLK_SET_RATE_PARENT, mult, div);
-}
-
 static inline struct clk *imx_clk_divider(const char *name, const char *parent,
 		void __iomem *reg, u8 shift, u8 width)
 {
@@ -209,6 +202,22 @@ static inline struct clk *imx_clk_mux_flags(const char *name,
 	return clk_register_mux(NULL, name, parents, num_parents,
 			flags | CLK_SET_RATE_NO_REPARENT, reg, shift, width, 0,
 			&imx_ccm_lock);
+}
+
+static inline struct clk *imx_clk_mux_glitchless(const char *name,
+		void __iomem *reg, u8 shift, u8 width, const char **parents,
+		int num_parents)
+{
+	return clk_register_mux(NULL, name, parents, num_parents,
+			CLK_SET_RATE_NO_REPARENT, reg, shift,
+			width, 0, &imx_ccm_lock);
+}
+
+static inline struct clk *imx_clk_fixed_factor(const char *name,
+		const char *parent, unsigned int mult, unsigned int div)
+{
+	return clk_register_fixed_factor(NULL, name, parent,
+			CLK_SET_RATE_PARENT, mult, div);
 }
 
 struct clk *imx_clk_cpu(const char *name, const char *parent_name,
