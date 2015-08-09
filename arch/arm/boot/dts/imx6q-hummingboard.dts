@@ -47,6 +47,10 @@
 / {
 	model = "SolidRun HummingBoard Dual/Quad";
 	compatible = "solidrun,hummingboard/q", "fsl,imx6q";
+
+	sound-sgtl5000 {
+		status = "okay";
+	};
 };
 
 &sata {
@@ -58,5 +62,9 @@
 };
 
 &sgtl5000 {
+	status = "okay";
+};
+
+&ssi1 {
 	status = "okay";
 };
