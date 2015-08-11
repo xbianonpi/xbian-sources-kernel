@@ -1092,7 +1092,7 @@ gckOS_MapMemory(
         }
 
 #ifndef NO_DMA_COHERENT
-        if (dma_mmap_writecombine(gcvNULL,
+        if (dma_mmap_writecombine(Os->device->dev,
                     mdlMap->vma,
                     mdl->addr,
                     mdl->dmaHandle,
@@ -1411,9 +1411,9 @@ gckOS_AllocateNonPagedMemory(
 
 #ifndef NO_DMA_COHERENT
 #ifdef CONFIG_ARM64
-    addr = dma_alloc_coherent(gcvNULL,
+    addr = dma_alloc_coherent(Os->device->dev,
 #else
-    addr = dma_alloc_writecombine(gcvNULL,
+    addr = dma_alloc_writecombine(Os->device->dev,
 #endif
             mdl->numPages * PAGE_SIZE,
             &mdl->dmaHandle,
@@ -1442,7 +1442,7 @@ gckOS_AllocateNonPagedMemory(
 #if !defined(CONFIG_PPC)
     /* Cache invalidate. */
     dma_sync_single_for_device(
-                gcvNULL,
+                Os->device->dev,
                 page_to_phys(page),
                 bytes,
                 DMA_FROM_DEVICE);
@@ -1523,7 +1523,7 @@ gckOS_AllocateNonPagedMemory(
         }
 
 #ifndef NO_DMA_COHERENT
-        if (dma_mmap_coherent(gcvNULL,
+        if (dma_mmap_coherent(Os->device->dev,
                 mdlMap->vma,
                 mdl->addr,
                 mdl->dmaHandle,
@@ -1681,9 +1681,9 @@ gceSTATUS gckOS_FreeNonPagedMemory(
 
 #ifndef NO_DMA_COHERENT
 #ifdef CONFIG_ARM64
-    dma_free_coherent(gcvNULL,
+    dma_free_coherent(Os->device->dev,
 #else
-    dma_free_writecombine(gcvNULL,
+    dma_free_writecombine(Os->device->dev,
 #endif
             mdl->numPages * PAGE_SIZE,
             mdl->addr,
@@ -5383,7 +5383,7 @@ gckOS_CacheClean(
     }
 
     dma_sync_single_for_device(
-              gcvNULL,
+              Os->device->dev,
               (dma_addr_t)Physical,
               Bytes,
               DMA_TO_DEVICE);
@@ -5457,7 +5457,7 @@ gckOS_CacheInvalidate(
     }
 
     dma_sync_single_for_device(
-              gcvNULL,
+              Os->device->dev,
               (dma_addr_t)Physical,
               Bytes,
               DMA_FROM_DEVICE);
@@ -5533,7 +5533,7 @@ gckOS_CacheFlush(
     if (Physical != gcvINVALID_ADDRESS)
     {
         dma_sync_single_for_device(
-                  gcvNULL,
+                  Os->device->dev,
                   (dma_addr_t)Physical,
                   Bytes,
                   DMA_BIDIRECTIONAL);
