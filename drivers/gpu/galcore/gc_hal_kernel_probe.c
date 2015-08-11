@@ -758,7 +758,7 @@ OnError:
 }
 
 
-static int drv_init(void)
+static int drv_init(struct platform_device *pdev)
 {
     int ret;
     int result = -EINVAL;
@@ -812,6 +812,7 @@ static int drv_init(void)
         powerManagement,
         gpuProfiler,
         &args,
+	&pdev->dev,
         &device
     );
 
@@ -975,7 +976,7 @@ static int gpu_probe(struct platform_device *pdev)
         _UpdateModuleParam(&moduleParam);
     }
 
-    ret = drv_init();
+    ret = drv_init(pdev);
 
     if (!ret)
     {

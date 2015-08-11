@@ -683,6 +683,7 @@ gckGALDEVICE_Construct(
     IN gctINT PowerManagement,
     IN gctINT GpuProfiler,
     IN gcsDEVICE_CONSTRUCT_ARGS * Args,
+    IN struct device *dev,
     OUT gckGALDEVICE *Device
     )
 {
@@ -728,6 +729,8 @@ gckGALDEVICE_Construct(
     device->dbgNode = gcvNULL;
 
     device->platform = Args->platform;
+
+    device->dev = dev;
 
     gcmkONERROR(_DebugfsInit(device));
 
