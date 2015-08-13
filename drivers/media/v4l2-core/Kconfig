@@ -55,6 +55,10 @@ config V4L2_FLASH_LED_CLASS
 
 	  When in doubt, say N.
 
+config VIDEO_V4L2_INT_DEVICE
+	tristate
+	depends on VIDEO_V4L2
+
 # Used by drivers that need Videobuf modules
 config VIDEOBUF_GEN
 	tristate
