@@ -45,7 +45,9 @@
 #include <media/v4l2-device.h>
 #include "v4l2-int-device.h"
 #include <linux/fsl_devices.h>
+#include <uapi/linux/mxc_v4l2.h>
 #include "mxc_v4l2_capture.h"
+#include "../v4l2-extra.h"
 #include "ipu_prp_sw.h"
 
 #define init_MUTEX(sem)         sema_init(sem, 1)
