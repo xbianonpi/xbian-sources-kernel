@@ -42,9 +42,11 @@
 #include <linux/regmap.h>
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-ioctl.h>
-#include <media/v4l2-int-device.h>
+#include <media/v4l2-device.h>
+#include "v4l2-int-device.h"
 #include <linux/fsl_devices.h>
 #include "mxc_v4l2_capture.h"
+#include "../v4l2-extra.h"
 #include "ipu_prp_sw.h"
 
 #define init_MUTEX(sem)         sema_init(sem, 1)
@@ -1591,17 +1593,26 @@ exit:
 static int mxc_v4l2_s_std(cam_data *cam, v4l2_std_id e)
 {
 	pr_debug("%s: %Lx\n", __func__, e);
-	if (e == V4L2_STD_PAL) {
+	switch (e) {
+	case V4L2_STD_PAL:
 		pr_debug("   Setting standard to PAL %Lx\n", V4L2_STD_PAL);
 		cam->standard.id = V4L2_STD_PAL;
 		video_index = TV_PAL;
-	} else if (e == V4L2_STD_NTSC) {
+		break;
+	case V4L2_STD_NTSC:
 		pr_debug("   Setting standard to NTSC %Lx\n",
 				V4L2_STD_NTSC);
 		/* Get rid of the white dot line in NTSC signal input */
 		cam->standard.id = V4L2_STD_NTSC;
 		video_index = TV_NTSC;
-	} else {
+		break;
+	case V4L2_STD_UNKNOWN:
+	case V4L2_STD_ALL:
+		/* auto-detect don't report an error */
+		cam->standard.id = V4L2_STD_ALL;
+		video_index = TV_NOT_LOCKED;
+		break;
+	default:
 		cam->standard.id = V4L2_STD_ALL;
 		video_index = TV_NOT_LOCKED;
 		pr_err("ERROR: unrecognized std! %Lx (PAL=%Lx, NTSC=%Lx\n",
@@ -1678,7 +1689,8 @@ static int mxc_v4l_dqueue(cam_data *cam, struct v4l2_buffer *buf)
 	pr_debug("%s\n", __func__);
 
 	if (!wait_event_interruptible_timeout(cam->enc_queue,
-					      cam->enc_counter != 0, 50 * HZ)) {
+					      cam->enc_counter != 0,
+					      50 * HZ)) {
 		pr_err("ERROR: v4l2 capture: mxc_v4l_dqueue timeout "
 			"enc_counter %x\n",
 		       cam->enc_counter);
@@ -1793,7 +1805,8 @@ static int mxc_v4l_open(struct file *file)
 
 	sensor = cam->sensor->priv;
 	if (!sensor) {
-		pr_err("%s: Internal error, sensor_data is not found!\n", __func__);
+		pr_err("%s: Internal error, sensor_data is not found!\n",
+		       __func__);
 		return -EBADF;
 	}
 	pr_debug("%s: %s ipu%d/csi%d\n", __func__, dev->name,
@@ -1892,13 +1905,15 @@ static int mxc_v4l_close(struct file *file)
 	}
 
 	if (!cam->sensor) {
-		pr_err("%s: Internal error, camera is not found!\n", __func__);
+		pr_err("%s: Internal error, camera is not found!\n",
+		       __func__);
 		return -EBADF;
 	}
 
 	sensor = cam->sensor->priv;
 	if (!sensor) {
-		pr_err("%s: Internal error, sensor_data is not found!\n", __func__);
+		pr_err("%s: Internal error, sensor_data is not found!\n",
+		       __func__);
 		return -EBADF;
 	}
 
@@ -2546,6 +2561,17 @@ static long mxc_v4l_do_ioctl(struct file *file,
 		}
 		break;
 	}
+	case VIDIOC_ENUM_FRAMEINTERVALS: {
+		struct v4l2_frmivalenum *fival = arg;
+		if (cam->sensor) {
+			retval = vidioc_int_enum_frameintervals(cam->sensor,
+								fival);
+		} else {
+			pr_err("ERROR: v4l2 capture: slave not found!\n");
+			retval = -ENODEV;
+		}
+		break;
+	}
 	case VIDIOC_DBG_G_CHIP_IDENT: {
 		struct v4l2_dbg_chip_ident *p = arg;
 		p->ident = V4L2_IDENT_NONE;
@@ -2672,7 +2698,7 @@ static struct v4l2_file_operations mxc_v4l_fops = {
 	.open = mxc_v4l_open,
 	.release = mxc_v4l_close,
 	.read = mxc_v4l_read,
-	.ioctl = mxc_v4l_ioctl,
+	.unlocked_ioctl = mxc_v4l_ioctl,
 	.mmap = mxc_mmap,
 	.poll = mxc_poll,
 };
@@ -2788,6 +2814,7 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	int ipu_id, csi_id, mclk_source, mipi_camera, def_input;
 	int ret = 0;
+	struct v4l2_device *v4l2_dev;
 	static int camera_id;
 
 	pr_debug("%s\n", __func__);
@@ -2851,6 +2878,21 @@ static int init_camera_struct(cam_data *cam, struct platform_device *pdev)
 	video_set_drvdata(cam->video_dev, cam);
 	dev_set_drvdata(&pdev->dev, (void *)cam);
 	cam->video_dev->minor = -1;
+
+	v4l2_dev = kzalloc(sizeof(*v4l2_dev), GFP_KERNEL);
+	if (!v4l2_dev) {
+		dev_err(&pdev->dev, "failed to allocate v4l2_dev structure\n");
+		video_device_release(cam->video_dev);
+		return -ENOMEM;
+	}
+
+	if (v4l2_device_register(&pdev->dev, v4l2_dev) < 0) {
+		dev_err(&pdev->dev, "register v4l2 device failed\n");
+		video_device_release(cam->video_dev);
+		kfree(v4l2_dev);
+		return -ENODEV;
+	}
+	cam->video_dev->v4l2_dev = v4l2_dev;
 
 	init_waitqueue_head(&cam->enc_queue);
 	init_waitqueue_head(&cam->still_queue);
@@ -2984,7 +3026,7 @@ static int mxc_v4l2_probe(struct platform_device *pdev)
 
 	/* register v4l video device */
 	if (video_register_device(cam->video_dev, VFL_TYPE_GRABBER, video_nr)
-	    == -1) {
+		< 0) {
 		kfree(cam);
 		cam = NULL;
 		pr_err("ERROR: v4l2 capture: video_register_device failed\n");
@@ -3028,6 +3070,7 @@ static int mxc_v4l2_remove(struct platform_device *pdev)
 			"-- setting ops to NULL\n");
 		return -EBUSY;
 	} else {
+		struct v4l2_device *v4l2_dev = cam->video_dev->v4l2_dev;
 		device_remove_file(&cam->video_dev->dev,
 			&dev_attr_fsl_v4l2_capture_property);
 		device_remove_file(&cam->video_dev->dev,
@@ -3048,6 +3091,9 @@ static int mxc_v4l2_remove(struct platform_device *pdev)
 
 		mxc_free_frame_buf(cam);
 		kfree(cam);
+
+		v4l2_device_unregister(v4l2_dev);
+		kfree(v4l2_dev);
 	}
 
 	pr_info("V4L2 unregistering video\n");
@@ -3190,7 +3236,8 @@ static int mxc_v4l2_master_attach(struct v4l2_int_device *slave)
 		cam->all_sensors[cam->sensor_index] = slave;
 		cam->sensor_index++;
 	} else {
-		pr_err("ERROR: v4l2 capture: slave number exceeds the maximum.\n");
+		pr_err("ERROR: v4l2 capture: slave number exceeds "
+		       "the maximum.\n");
 		return -1;
 	}
 
