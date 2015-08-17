@@ -47,6 +47,10 @@ struct snvs_rtc_data {
 	struct clk *clk;
 };
 
+static void __iomem *snvs_base;
+
+void snvs_poweroff(void);
+
 static u32 rtc_read_lp_counter(struct snvs_rtc_data *data)
 {
 	u64 read1, read2;
@@ -229,6 +233,15 @@ static const struct regmap_config snvs_rtc_config = {
 	.val_bits = 32,
 	.reg_stride = 4,
 };
+
+void snvs_poweroff(void)
+{
+	u32 value;
+
+	value = readl(snvs_base + SNVS_LPCR);
+	/* set TOP and DP_EN bit */
+	writel(value | 0x60, snvs_base + SNVS_LPCR);
+}
 
 static int snvs_rtc_probe(struct platform_device *pdev)
 {
