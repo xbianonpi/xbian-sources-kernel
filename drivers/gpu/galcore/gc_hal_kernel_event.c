@@ -2461,6 +2461,11 @@ gckEVENT_Notify(
                        "Handled interrupt 0x%x", mask);
     }
 
+    if (IDs == 0)
+    {
+        gcmkONERROR(_TryToIdleGPU(Event));
+    }
+
     /* Success. */
     gcmkFOOTER_NO();
     return gcvSTATUS_OK;
