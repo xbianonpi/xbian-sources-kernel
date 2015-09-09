@@ -7338,11 +7338,7 @@ gckOS_QueryProfileTickRate(
     OUT gctUINT64_PTR TickRate
     )
 {
-    struct timespec res;
-
-    hrtimer_get_res(CLOCK_MONOTONIC, &res);
-
-    *TickRate = res.tv_nsec + res.tv_sec * 1000000000ULL;
+    *TickRate = hrtimer_resolution;
 
     return gcvSTATUS_OK;
 }
