@@ -183,6 +183,9 @@
 		status = "okay";
 	};
 
+	restart_poweroff {
+		compatible = "fsl,snvs-poweroff";
+	};
 };
 
 &iomuxc {
