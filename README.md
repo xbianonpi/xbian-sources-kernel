@@ -11,7 +11,11 @@ Currently used kernel releases:
 	https://github.com/xbianonpi/xbian-sources-kernel/tree/uboot-imx6
 
 	(libCEC tree compatible with included kernel driver is at
-	https://github.com/xbianonpi/xbian-sources-libcec)
+	https://github.com/xbianonpi/xbian-sources-libcec/tree/masterv3)
 
     RPI / RPI2 - linux-4.1.y
 	https://github.com/xbianonpi/xbian-sources-kernel/tree/rpi-4.1.y
+
+    iMX6 - linux-4.3.y (experimental)
+	https://github.com/xbianonpi/xbian-sources-kernel/tree/imx6-4.3.y
+	(default configuration - imx_v7_cbi_hb_xbian_defconfig)
