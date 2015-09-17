@@ -155,6 +155,7 @@
 	mmc-pwrseq = <&usdhc1_pwrseq>;
 	keep-power-in-suspend;
 	non-removable;
+	no-1-8-v;
 	vmmc-supply = <&reg_brcm>;
 	status = "okay";
 };
