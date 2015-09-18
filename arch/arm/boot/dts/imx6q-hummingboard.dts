@@ -65,6 +65,10 @@
 	status = "okay";
 };
 
+&rtc {
+	status = "okay";
+};
+
 &ssi1 {
 	status = "okay";
 };
