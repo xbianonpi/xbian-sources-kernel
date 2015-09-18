@@ -1040,8 +1040,6 @@ void phy_state_machine(struct work_struct *work)
 			phydev->state = PHY_RUNNING;
 			netif_carrier_on(phydev->attached_dev);
 			phy_adjust_link(phydev);
-		} else {
-			netif_carrier_off(phydev->attached_dev);
 		}
 		break;
 	case PHY_FORCING:
