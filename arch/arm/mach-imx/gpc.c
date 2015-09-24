@@ -473,7 +473,7 @@ static int imx_gpc_probe(struct platform_device *pdev)
 
 	of_property_read_u32(pdev->dev.of_node, "fsl,ldo-bypass", &bypass);
 	/* We only bypass pu since arm and soc has been set in u-boot */
-	if (bypass)
+	if (pu_reg && bypass)
 		regulator_allow_bypass(pu_reg, true);
 
 	return imx_gpc_genpd_init(&pdev->dev, pu_reg);
