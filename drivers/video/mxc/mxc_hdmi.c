@@ -2203,14 +2203,6 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		if ((vic = mxc_edid_mode_to_vic(mode, 0)))
 			nvic++;
 
-		// allow detailed timing specification with vic=0 for HDMI
-		// mode
-		if (hdmi->edid_cfg.hdmi_cap &&
-		   ((!(mode->flag & FB_MODE_IS_DETAILED || !mode->flag) && vic == 0)
-				||
-		   (mode->flag & FB_MODE_IS_VESA)))
-				continue;
-
 		if (!mode->xres || !mode->refresh)
 			continue;
 
