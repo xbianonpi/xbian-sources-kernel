@@ -754,6 +754,43 @@ int mxc_edid_mode_to_vic(const struct fb_videomode *mode, u32 mode_mask)
 }
 EXPORT_SYMBOL(mxc_edid_mode_to_vic);
 
+int mxc_edid_parse_raw(unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi)
+{
+	int ret = 0, extblknum;
+	if (!edid || !cfg || !fbi)
+		return -EINVAL;
+
+	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
+
+	extblknum = edid[0x7E];
+	if (extblknum < 0)
+		return extblknum;
+
+	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
+	fb_edid_to_monspecs(edid, &fbi->monspecs);
+
+	ret = mxc_edid_parse_ext_blk(edid + EDID_LENGTH,
+				cfg, &fbi->monspecs);
+	if (ret < 0) {
+		fb_edid_add_monspecs(edid + EDID_LENGTH, &fbi->monspecs);
+		if (fbi->monspecs.modedb_len > 0)
+			cfg->hdmi_cap = false;
+		else
+			return -ENOENT;
+	}
+
+	while (extblknum-- > 1) {
+		/* edid ext block parsing */
+		ret = mxc_edid_parse_ext_blk(edid + extblknum*EDID_LENGTH,
+				cfg, &fbi->monspecs);
+		if (ret < 0)
+			return -ENOENT;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(mxc_edid_parse_raw);
+
 /* make sure edid has 512 bytes*/
 int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 	unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi)
@@ -762,39 +799,23 @@ int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 	if (!adp || !edid || !cfg || !fbi)
 		return -EINVAL;
 
-	memset(edid, 0, EDID_LENGTH*4);
-	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
-
 	extblknum = mxc_edid_readblk(adp, addr, edid);
 	if (extblknum < 0)
 		return extblknum;
 
-	/* edid first block parsing */
-	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
-	fb_edid_to_monspecs(edid, &fbi->monspecs);
-
 	if (extblknum) {
-		int i;
-
 		/* FIXME: mxc_edid_readsegblk() won't read more than 2 blocks
 		 * and the for-loop will read past the end of the buffer! :-( */
 		BUG_ON(extblknum > 3);
 
-		/* need read segment block? */
-		if (extblknum > 1) {
+		if (extblknum > 1)
 			ret = mxc_edid_readsegblk(adp, addr,
 				edid + EDID_LENGTH*2, extblknum - 1);
-			if (ret < 0)
-				return ret;
-		}
-
-		for (i = 1; i <= extblknum; i++)
-			/* edid ext block parsing */
-			mxc_edid_parse_ext_blk(edid + i*EDID_LENGTH,
-					cfg, &fbi->monspecs);
 	}
+	if (!ret)
+		ret = mxc_edid_parse_raw(edid, cfg, fbi);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(mxc_edid_read);
 

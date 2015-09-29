@@ -1821,9 +1821,8 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 			struct mxc_edid_cfg *cfg, struct fb_info *fbi)
 {
 	int extblknum;
-	int i, ret;
+	int i, j;
 	unsigned char *ediddata = edid;
-	unsigned char tmpedid[EDID_LENGTH];
 
 	dev_info(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -1853,10 +1852,6 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 		    HDMI_I2CM_CTLINT_ARBITRATION_POL,
 		    HDMI_I2CM_CTLINT);
 
-	/* reset edid data zero */
-	memset(edid, 0, EDID_LENGTH*4);
-	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
-
 	/* Check first three byte of EDID head */
 	if (!(hdmi_edid_i2c_read(hdmi, 0, 0) == 0x00) ||
 		!(hdmi_edid_i2c_read(hdmi, 1, 0) == 0xFF) ||
@@ -1871,47 +1866,25 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	}
 
 	extblknum = edid[0x7E];
-
-	if (extblknum < 0) {
+	if (extblknum < 0)
 		return extblknum;
-	} else {
-		ediddata = edid + EDID_LENGTH;
-		for (i = 0; i < 128; i++) {
-			*ediddata = hdmi_edid_i2c_read(hdmi, i, 1);
-			ediddata++;
-		}
-	}
 
-	/* edid first block parsing */
-	memset(&fbi->monspecs, 0, sizeof(fbi->monspecs));
-	fb_edid_to_monspecs(edid, &fbi->monspecs);
-
-	ret = mxc_edid_parse_ext_blk(edid + EDID_LENGTH,
-			cfg, &fbi->monspecs);
-	if (ret < 0) {
-                fb_edid_add_monspecs(edid + EDID_LENGTH, &fbi->monspecs);
-                if (fbi->monspecs.modedb_len > 0)
-                        hdmi->edid_cfg.hdmi_cap = false;
-                else
-			return -ENOENT;
+	for (i = 0; i < 128; i++) {
+		*ediddata = hdmi_edid_i2c_read(hdmi, i, 1);
+		ediddata++;
 	}
 
 	/* need read segment block? */
-	if (extblknum > 1) {
-		int j;
-		for (j = 1; j <= extblknum; j++) {
-			for (i = 0; i < 128; i++)
-				*(tmpedid + 1) = hdmi_edid_i2c_read(hdmi, i, j);
+	if (extblknum == 1)
+		return 0;
 
-			/* edid ext block parsing */
-			ret = mxc_edid_parse_ext_blk(tmpedid + EDID_LENGTH,
-					cfg, &fbi->monspecs);
-			if (ret < 0)
-				return -ENOENT;
+	for (j = 1; j <= extblknum; j++)
+		for (i = 0; i < 128; i++) {
+			*ediddata = hdmi_edid_i2c_read(hdmi, i, j);
+			ediddata++;
 		}
-	}
 
-	return 0;
+	return mxc_edid_parse_raw(hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
 }
 
 static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
@@ -1924,6 +1897,7 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 
 	/* save old edid */
 	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
+	memset(hdmi->edid, 0, HDMI_EDID_LEN);
 
 	/* Read EDID via HDMI DDC when HDCP Enable */
 	if (!hdcp_init)
