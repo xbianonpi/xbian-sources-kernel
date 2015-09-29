@@ -55,8 +55,19 @@ struct mxc_hdmi_3d_format {
 };
 
 struct mxc_edid_cfg {
-	bool cea_underscan;
+	u8 vsd_video_latency;
+	u8 vsd_audio_latency;
+	u8 vsd_I_video_latency;
+	u8 vsd_I_audio_latency;
+
+	u8 sample_sizes[4];
+	u8 sample_rates[4];
+	u8 speaker_alloc;
+	u8 physical_address[4];
+
 	bool cea_basicaudio;
+
+	bool cea_underscan;
 	bool cea_ycbcr444;
 	bool cea_ycbcr422;
 	bool hdmi_cap;
@@ -73,17 +84,13 @@ struct mxc_edid_cfg {
 	bool vsd_dc_y444;
 	bool vsd_dvi_dual;
 
+	u8 CONFIGKEEP;
+
 	bool vsd_cnc0;
 	bool vsd_cnc1;
 	bool vsd_cnc2;
 	bool vsd_cnc3;
 
-	u8 vsd_video_latency;
-	u8 vsd_audio_latency;
-	u8 vsd_I_video_latency;
-	u8 vsd_I_audio_latency;
-
-	u8 physical_address[4];
 	u8 hdmi_vic[64];
 	struct mxc_hdmi_3d_format hdmi_3d_format[64];
 	u16 hdmi_3d_mask_all;
@@ -92,10 +99,6 @@ struct mxc_edid_cfg {
 	unsigned char hdmi_3d_len;
 	unsigned char hdmi_3d_multi_present;
 	u32 vsd_max_tmdsclk_rate;
-
-	u8 sample_sizes[4];
-	u8 sample_rates[4];
-	u8 speaker_alloc;
 };
 
 static inline unsigned long mxcPICOS2KHZ(u32 pixclock, u32 vmode) {
