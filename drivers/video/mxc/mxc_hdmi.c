@@ -52,7 +52,9 @@
 #include <linux/regmap.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/of_device.h>
+#include <linux/string.h>
 
+#include <linux/firmware.h>
 #include <linux/console.h>
 #include <linux/types.h>
 
@@ -146,6 +148,7 @@ struct hdmi_data_info {
 	unsigned int rgb_quant_range;
 	unsigned int enable_3d;
 	unsigned int enable_fract;
+	char *edid_filename;
 	struct hdmi_vmode video_mode;
 };
 
@@ -180,6 +183,7 @@ struct mxc_hdmi {
 	int vic;
 	struct mxc_edid_cfg edid_cfg;
 	u8 edid[HDMI_EDID_LEN];
+	const struct firmware *edid_from_fw;
 	bool fb_reg;
 	enum hotplug_state hp_state;
 	u8 blank;
@@ -191,6 +195,7 @@ struct mxc_hdmi {
 	u8 plug_mask;
 	bool irq_enabled;
 	spinlock_t irq_lock;
+	struct mutex m_lock;
 	bool phy_enabled;
 	struct fb_videomode default_mode;
 	struct fb_var_screeninfo previous_non_vga_mode;
@@ -236,6 +241,10 @@ MODULE_PARM_DESC(rgb_quant_range, "RGB Quant Range (auto, default, limited, full
 static bool ignore_edid = 0;
 module_param(ignore_edid, bool, S_IRUGO);
 MODULE_PARM_DESC(ignore_edid, "Ignore EDID (default=0)");
+
+static char *ext_edid = "";
+module_param(ext_edid, charp, S_IRUGO);
+MODULE_PARM_DESC(ext_edid, "file name to load EDID from");
 
 static char *enable_3d = "1";
 module_param(enable_3d, charp, S_IRUGO);
@@ -1899,11 +1908,25 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
 	memset(hdmi->edid, 0, HDMI_EDID_LEN);
 
-	/* Read EDID via HDMI DDC when HDCP Enable */
-	if (!hdcp_init)
+	/*
+	   Try loading EDID from firmware first
+	   Read EDID via HDMI DDC when HDCP Enable
+	*/
+	if (hdmi->edid_from_fw) {
+		struct mxc_edid_cfg edid_cfg_old;
+		int edid_cfg_keep = (void*)&hdmi->edid_cfg.CONFIGKEEP - (void*)&hdmi->edid_cfg;
+
+		memcpy(&edid_cfg_old, &hdmi->edid_cfg, edid_cfg_keep);
+		memcpy(hdmi->edid, hdmi->edid_from_fw->data, hdmi->edid_from_fw->size);
+		release_firmware(hdmi->edid_from_fw);
+		hdmi->edid_from_fw = NULL;
+
+		if (!(ret = mxc_edid_parse_raw(hdmi->edid, &hdmi->edid_cfg, hdmi->fbi)))
+			memcpy(&hdmi->edid_cfg, &edid_cfg_old, edid_cfg_keep);
+	} else if (!hdcp_init) {
 		ret = mxc_edid_read(hdmi_i2c->adapter, hdmi_i2c->addr,
 				hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
-	else {
+	} else {
 
 		/* Disable HDCP clk */
 		if (hdmi->hdmi_data.hdcp_enable) {
@@ -2285,6 +2308,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	const struct fb_videomode *mode;
 	struct fb_videomode m;
 	struct fb_var_screeninfo var;
+	u32 l;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2333,18 +2357,22 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		mxc_hdmi_notify_fb(hdmi);
 	}
 
+#ifdef CONFIG_MXC_HDMI_CEC
+	memcpy(&l, &hdmi->edid_cfg.physical_address, 4 *sizeof(u8));
+	mxc_hdmi_cec_handle(l);
+#endif
+	hdmi_set_cable_state(1);
+
 }
 
-static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
+static void mxc_hdmi_cable_connected_edid(struct mxc_hdmi *hdmi)
 {
 	int edid_status;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
-	hdmi->hp_state = HDMI_HOTPLUG_CONNECTED_NO_EDID;
-
+	mutex_lock(&hdmi->m_lock);
 	/* HDMI Initialization Step C */
-
 	if (ignore_edid)
 		edid_status = HDMI_EDID_FAIL;
 	else
@@ -2387,6 +2415,36 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 
 	/* Setting video mode */
 	mxc_hdmi_set_mode(hdmi, edid_status);
+
+	mutex_unlock(&hdmi->m_lock);
+	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
+}
+
+static void mxc_hdmi_edid_from_file(const struct firmware *fw, void *data)
+{
+	struct mxc_hdmi *hdmi = data;
+
+	mutex_lock(&hdmi->m_lock);
+	hdmi->edid_from_fw = fw;
+	mutex_unlock(&hdmi->m_lock);
+
+	mxc_hdmi_cable_connected_edid(hdmi);
+}
+
+static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
+{
+	bool has_ext_edid = !!strcmp(hdmi->hdmi_data.edid_filename, "");
+
+	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
+
+	hdmi->hp_state = HDMI_HOTPLUG_CONNECTED_NO_EDID;
+
+	if (has_ext_edid)
+		request_firmware_nowait(THIS_MODULE, true, hdmi->hdmi_data.edid_filename,
+					&hdmi->pdev->dev, GFP_KERNEL, hdmi, mxc_hdmi_edid_from_file);
+
+	if (!has_ext_edid || !hdmi->dft_mode_set)
+		mxc_hdmi_cable_connected_edid(hdmi);
 
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
@@ -2444,7 +2502,6 @@ static void hotplug_worker(struct work_struct *work)
 	unsigned long flags;
 	char event_string[32];
 	char *envp[] = { event_string, NULL };
-	u32 l;
 
 	hdmi_phy_stat0 = hdmi_readb(HDMI_PHY_STAT0);
 	hdmi_phy_pol0 = hdmi_readb(HDMI_PHY_POL0);
@@ -2465,11 +2522,6 @@ static void hotplug_worker(struct work_struct *work)
 
 			sprintf(event_string, "EVENT=plugin");
 			kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
-#ifdef CONFIG_MXC_HDMI_CEC
-			memcpy(&l, &hdmi->edid_cfg.physical_address, 4 *sizeof(u8));
-			mxc_hdmi_cec_handle(l);
-#endif
-			hdmi_set_cable_state(1);
 		} else {
 			/* Plugout event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
@@ -3094,6 +3146,8 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	INIT_WORK(&hdmi->hotplug_work, hotplug_worker);
 	INIT_DELAYED_WORK(&hdmi->hdcp_hdp_work, hdcp_hdp_worker);
 
+	mutex_init(&hdmi->m_lock);
+
 	/* Configure registers related to HDMI interrupt
 	 * generation before registering IRQ. */
 	hdmi_writeb(hdmi->plug_mask, HDMI_PHY_POL0);
@@ -3107,6 +3161,9 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		goto efbclient;
 
 	memset(&hdmi->hdmi_data, 0, sizeof(struct hdmi_data_info));
+
+	hdmi->hdmi_data.edid_filename = kstrdup(ext_edid, GFP_KERNEL);
+	pr_info("EDID specified in file: %s\n", hdmi->hdmi_data.edid_filename);
 
 	/* Default HDMI working in RGB mode */
 	hdmi->hdmi_data.rgb_out_enable = true;
@@ -3224,6 +3281,7 @@ static void mxc_hdmi_disp_deinit(struct mxc_dispdrv_handle *disp)
 	clk_disable_unprepare(hdmi->mipi_core_clk);
 	clk_put(hdmi->mipi_core_clk);
 
+	kfree(hdmi->hdmi_data.edid_filename);
 	platform_device_unregister(hdmi->pdev);
 
 	hdmi_inited = false;
