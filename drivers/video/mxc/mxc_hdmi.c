@@ -1950,11 +1950,6 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 	if (ret < 0)
 		return HDMI_EDID_FAIL;
 
-	dev_info(&hdmi->pdev->dev, "%s reports %s mode\n", __func__, hdmi->edid_cfg.hdmi_cap?"HDMI":"DVI");
-	hdmi->hp_state = hdmi->edid_cfg.hdmi_cap?HDMI_HOTPLUG_CONNECTED_HDMI:HDMI_HOTPLUG_CONNECTED_DVI;
-	hdmi->plug_event = hdmi->edid_cfg.hdmi_cap?HDMI_IH_PHY_STAT0_HPD:HDMI_DVI_IH_STAT;
-	hdmi->plug_mask = hdmi->edid_cfg.hdmi_cap?HDMI_PHY_HPD:HDMI_DVI_STAT;
-
 	if (!memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
 		dev_info(&hdmi->pdev->dev, "same edid\n");
 		return HDMI_EDID_SAME;
@@ -2409,6 +2404,11 @@ static void mxc_hdmi_cable_connected_edid(struct mxc_hdmi *hdmi)
 		mxc_hdmi_default_modelist(hdmi);
 		break;
 	}
+
+	dev_info(&hdmi->pdev->dev, "%s reports %s mode\n", __func__, hdmi->edid_cfg.hdmi_cap ? "HDMI" : "DVI");
+	hdmi->hp_state   = hdmi->edid_cfg.hdmi_cap ? HDMI_HOTPLUG_CONNECTED_HDMI : HDMI_HOTPLUG_CONNECTED_DVI;
+	hdmi->plug_event = hdmi->edid_cfg.hdmi_cap ? HDMI_IH_PHY_STAT0_HPD       : HDMI_DVI_IH_STAT;
+	hdmi->plug_mask  = hdmi->edid_cfg.hdmi_cap ? HDMI_PHY_HPD                : HDMI_DVI_STAT;
 
 	/* Save edid cfg for audio driver */
 	hdmi_set_edid_cfg(edid_status, &hdmi->edid_cfg);
