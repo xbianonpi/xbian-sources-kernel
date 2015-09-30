@@ -2270,8 +2270,7 @@ static void  mxc_hdmi_default_edid_cfg(struct mxc_hdmi *hdmi)
 static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 {
 	u32 i;
-	const struct fb_videomode *mode;
-	struct fb_videomode m;
+	struct fb_videomode mode;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2283,15 +2282,18 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
 
-	fb_var_to_videomode(&m, &hdmi->fbi->var);
-	fb_add_videomode(&m, &hdmi->fbi->modelist);
-
 	/*Add all no interlaced CEA mode to default modelist */
 	for (i = 0; i < ARRAY_SIZE(mxc_cea_mode); i++) {
-		mode = &mxc_cea_mode[i];
-		if (mode->xres != 0)
-			fb_add_videomode(mode, &hdmi->fbi->modelist);
+		mode = mxc_cea_mode[i];
+		if (mode.xres != 0) {
+			if (ignore_edid)
+				mode.flag |= FB_MODE_IS_STANDARD;
+			fb_add_videomode(&mode, &hdmi->fbi->modelist);
+		}
 	}
+
+	fb_var_to_videomode(&mode, &hdmi->fbi->var);
+	fb_add_videomode(&mode, &hdmi->fbi->modelist);
 
 	fb_new_modelist(hdmi->fbi);
 
