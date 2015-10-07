@@ -2865,12 +2865,12 @@ fec_enet_open(struct net_device *ndev)
 		goto err_enet_alloc;
 
 	if (!fep->phy_dev) {
-		/* Init MAC prior to mii bus probe */
 		fec_restart(ndev);
 		ret = fec_enet_mii_probe(ndev);
 		if (ret)
 			goto err_enet_alloc;
-	}
+	} else if (fep->phy_dev->state == PHY_RUNNING)
+			fep->phy_dev->state = PHY_HALTED;
 
 	napi_enable(&fep->napi);
 	phy_start(fep->phy_dev);
