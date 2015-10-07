@@ -2827,12 +2827,13 @@ fec_enet_open(struct net_device *ndev)
 		goto err_enet_alloc;
 
 	if (!fep->phy_dev) {
+		fec_restart(ndev);
 		ret = fec_enet_mii_probe(ndev);
 		if (ret)
 			goto err_enet_alloc;
-	}
+	} else if (fep->phy_dev->state == PHY_RUNNING)
+			fep->phy_dev->state = PHY_HALTED;
 
-	fec_restart(ndev);
 	napi_enable(&fep->napi);
 	phy_start(fep->phy_dev);
 	netif_tx_start_all_queues(ndev);
