@@ -81,6 +81,9 @@ static unsigned int hdmi_blank_state;
 static unsigned int hdmi_abort_state;
 static spinlock_t hdmi_audio_lock, hdmi_blank_state_lock, hdmi_cable_state_lock;
 
+static unsigned int cts_n_prev = 0;
+static unsigned int cts_prev = 0;
+
 void hdmi_set_dvi_mode(unsigned int state)
 {
 	if (state) {
@@ -336,6 +339,11 @@ static void hdmi_set_clock_regenerator_n(unsigned int value)
 {
 	u8 val;
 
+	if (cts_n_prev == value || (cts_n_prev && !check_hdmi_state()))
+		return;
+
+	cts_n_prev = value;
+
 	if (!hdmi_dma_running) {
 		hdmi_writeb(value & 0xff, HDMI_AUD_N1);
 		hdmi_writeb(0, HDMI_AUD_N2);
@@ -355,6 +363,11 @@ static void hdmi_set_clock_regenerator_n(unsigned int value)
 static void hdmi_set_clock_regenerator_cts(unsigned int cts)
 {
 	u8 val;
+
+	if (cts_prev == cts || (cts_prev && !check_hdmi_state()))
+		return;
+
+	cts_prev = cts;
 
 	if (!hdmi_dma_running) {
 		hdmi_writeb(cts & 0xff, HDMI_AUD_CTS1);
