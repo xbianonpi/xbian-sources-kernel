@@ -34,6 +34,9 @@
 #endif
 #include "../fbdev/edid.h"
 
+#include <drm/drm_edid.h>
+#include <drm/drm_crtc.h>
+
 #define DPRINTK(fmt, args...) pr_debug(fmt, ## args)
 
 const struct fb_videomode mxc_cea_mode[64] = {
@@ -754,6 +757,20 @@ int mxc_edid_mode_to_vic(const struct fb_videomode *mode, u32 mode_mask)
 }
 EXPORT_SYMBOL(mxc_edid_mode_to_vic);
 
+int mxc_edid_to_edl(unsigned char *edid, unsigned char *eld)
+{
+	struct drm_connector connector;
+	int ret;
+
+	memset(&connector, 0, sizeof(struct drm_connector));
+	drm_edid_to_eld(&connector, (struct edid *)edid);
+
+	memcpy(eld, &connector.eld, MAX_ELD_BYTES);
+	ret = drm_eld_size(eld);
+
+	return ret == DRM_ELD_HEADER_BLOCK_SIZE;
+}
+
 int mxc_edid_parse_raw(unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_info *fbi)
 {
 	int ret = 0, extblknum;
@@ -761,6 +778,7 @@ int mxc_edid_parse_raw(unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_
 		return -EINVAL;
 
 	memset(cfg, 0, sizeof(struct mxc_edid_cfg));
+	mxc_edid_to_edl(edid, cfg->hdmi_eld);
 
 	extblknum = edid[0x7E];
 	if (extblknum < 0)
