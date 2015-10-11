@@ -37,6 +37,8 @@
 
 #include <video/mxc_hdmi.h>
 
+#include <drm/drm_edid.h>
+
 #include "imx-hdmi.h"
 
 
@@ -550,6 +552,99 @@ static int fsl_hdmi_iec_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int fsl_hdmi_channels_info(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_info *uinfo)
+{
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_channels();
+
+	uinfo->type  = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = playback_constraint_channels.count;
+
+	return 0;
+}
+
+
+static int fsl_hdmi_channels_get(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *uvalue)
+{
+	int i;
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_channels();
+
+	for (i = 0 ; i < playback_constraint_channels.count ; i++)
+		uvalue->value.integer.value[i] = playback_channels[i];
+
+	return 0;
+}
+
+static int fsl_hdmi_rates_info(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_info *uinfo)
+{
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_rates();
+
+	uinfo->type  = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = playback_constraint_rates.count;
+
+	return 0;
+}
+
+static int fsl_hdmi_rates_get(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *uvalue)
+{
+	int i;
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_rates();
+
+	for (i = 0 ; i < playback_constraint_rates.count ; i++)
+		uvalue->value.integer.value[i] = playback_rates[i];
+
+	return 0;
+}
+
+static int fsl_hdmi_formats_info(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_info *uinfo)
+{
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_sample_size();
+
+	uinfo->type  = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = playback_constraint_bits.count;
+
+	return 0;
+}
+
+static int fsl_hdmi_formats_get(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *uvalue)
+{
+	int i;
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_sample_size();
+
+	for (i = 0 ; i < playback_constraint_bits.count ; i++)
+		uvalue->value.integer.value[i] = playback_sample_size[i];
+
+	return 0;
+}
+
+static int fsl_hdmi_eld_info(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_BYTES;
+	uinfo->count = drm_eld_size(edid_cfg.hdmi_eld);
+
+	return 0;
+}
+
+static int fsl_hdmi_eld_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *uvalue)
+{
+	memcpy(uvalue->value.bytes.data, edid_cfg.hdmi_eld, drm_eld_size(edid_cfg.hdmi_eld));
+
+	return 0;
+}
+
 static struct snd_kcontrol_new fsl_hdmi_ctrls[] = {
 	/* Status cchanel controller */
 	{
@@ -561,6 +656,38 @@ static struct snd_kcontrol_new fsl_hdmi_ctrls[] = {
 		.info = fsl_hdmi_iec_info,
 		.get = fsl_hdmi_iec_get,
 		.put = fsl_hdmi_iec_put,
+	},
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name = "HDMI Support Channels",
+		.access = SNDRV_CTL_ELEM_ACCESS_READ |
+			SNDRV_CTL_ELEM_ACCESS_VOLATILE,
+		.info = fsl_hdmi_channels_info,
+		.get = fsl_hdmi_channels_get,
+	},
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name = "HDMI Support Rates",
+		.access = SNDRV_CTL_ELEM_ACCESS_READ |
+			SNDRV_CTL_ELEM_ACCESS_VOLATILE,
+		.info = fsl_hdmi_rates_info,
+		.get = fsl_hdmi_rates_get,
+	},
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name = "HDMI Support Formats",
+		.access = SNDRV_CTL_ELEM_ACCESS_READ |
+			SNDRV_CTL_ELEM_ACCESS_VOLATILE,
+		.info = fsl_hdmi_formats_info,
+		.get = fsl_hdmi_formats_get,
+	},
+	{
+		.iface = SNDRV_CTL_ELEM_IFACE_PCM,
+		.name = "ELD",
+		.access = SNDRV_CTL_ELEM_ACCESS_READ |
+			SNDRV_CTL_ELEM_ACCESS_VOLATILE,
+		.info = fsl_hdmi_eld_info,
+		.get = fsl_hdmi_eld_get,
 	},
 };
 
