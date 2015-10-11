@@ -27,6 +27,7 @@
 #define MXC_EDID_H
 
 #include <linux/fb.h>
+#include <drm/drm_crtc.h>
 
 enum cea_audio_coding_types {
 	AUDIO_CODING_TYPE_REF_STREAM_HEADER	=  0,
@@ -99,6 +100,8 @@ struct mxc_edid_cfg {
 	unsigned char hdmi_3d_len;
 	unsigned char hdmi_3d_multi_present;
 	u32 vsd_max_tmdsclk_rate;
+
+	u8 hdmi_eld[MAX_ELD_BYTES];
 };
 
 static inline unsigned long mxcPICOS2KHZ(u32 pixclock, u32 vmode) {
