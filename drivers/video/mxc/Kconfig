@@ -55,6 +55,7 @@ config FB_MXC_DCIC
         select VIDEOMODE_HELPERS
 
 config FB_MXC_EDID
-     depends on FB_MXC && I2C
+     depends on FB_MXC && I2C && DRM
      tristate "MXC EDID support"
      default y
+
