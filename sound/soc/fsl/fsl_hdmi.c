@@ -1,7 +1,7 @@
 /*
  * ALSA SoC HDMI Audio Layer for Freescale i.MX
  *
- * Copyright (C) 2011-2013 Freescale Semiconductor, Inc.
+ * Copyright (C) 2011-2014 Freescale Semiconductor, Inc.
  *
  * Some code from patch_hdmi.c
  *  Copyright (c) 2008-2010 Intel Corporation. All rights reserved.
@@ -467,16 +467,18 @@ static int fsl_hdmi_soc_startup(struct snd_pcm_substream *substream,
 	struct imx_hdmi *hdmi_data = snd_soc_dai_get_drvdata(dai);
 	int ret;
 
-	ret = fsl_hdmi_update_constraints(substream);
-	if (ret < 0)
-		return ret;
-
+	clk_prepare_enable(hdmi_data->mipi_core_clk);
 	clk_prepare_enable(hdmi_data->isfr_clk);
 	clk_prepare_enable(hdmi_data->iahb_clk);
 
-	dev_dbg(dai->dev, "%s hdmi clks: isfr:%d iahb:%d\n", __func__,
+	dev_dbg(dai->dev, "%s hdmi clks: mipi_core: %d isfr:%d iahb:%d\n", __func__,
+			(int)clk_get_rate(hdmi_data->mipi_core_clk),
 			(int)clk_get_rate(hdmi_data->isfr_clk),
 			(int)clk_get_rate(hdmi_data->iahb_clk));
+
+	ret = fsl_hdmi_update_constraints(substream);
+	if (ret < 0)
+		return ret;
 
 	/* Indicates the subpacket represents a flatline sample */
 	hdmi_audio_writeb(FC_AUDSCONF, AUD_PACKET_SAMPFIT, 0x0);
@@ -491,6 +493,7 @@ static void fsl_hdmi_soc_shutdown(struct snd_pcm_substream *substream,
 
 	clk_disable_unprepare(hdmi_data->iahb_clk);
 	clk_disable_unprepare(hdmi_data->isfr_clk);
+	clk_disable_unprepare(hdmi_data->mipi_core_clk);
 }
 
 static int fsl_hdmi_soc_prepare(struct snd_pcm_substream *substream,
@@ -744,6 +747,13 @@ static int fsl_hdmi_dai_probe(struct platform_device *pdev)
 
 	memcpy(&hdmi_data->cpu_dai_drv, &fsl_hdmi_dai, sizeof(fsl_hdmi_dai));
 	hdmi_data->cpu_dai_drv.name = np->name;
+
+	hdmi_data->mipi_core_clk = devm_clk_get(&pdev->dev, "mipi_core");
+	if (IS_ERR(hdmi_data->mipi_core_clk)) {
+		ret = PTR_ERR(hdmi_data->mipi_core_clk);
+		dev_err(&pdev->dev, "failed to get mipi core clk: %d\n", ret);
+		return -EINVAL;
+	}
 
 	hdmi_data->isfr_clk = devm_clk_get(&pdev->dev, "hdmi_isfr");
 	if (IS_ERR(hdmi_data->isfr_clk)) {
