@@ -8,6 +8,9 @@ config REGMAP
 	select LZO_DECOMPRESS
 	select IRQ_DOMAIN if REGMAP_IRQ
 	bool
+	
+config REGMAP_AC97
+	tristate
 
 config REGMAP_AC97
 	tristate
