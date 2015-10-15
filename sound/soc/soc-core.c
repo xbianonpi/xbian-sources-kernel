@@ -563,6 +563,40 @@ struct snd_soc_pcm_runtime *snd_soc_get_pcm_runtime(struct snd_soc_card *card,
 }
 EXPORT_SYMBOL_GPL(snd_soc_get_pcm_runtime);
 
+#ifdef CONFIG_SND_SOC_AC97_BUS
+/* unregister ac97 codec */
+static int soc_ac97_dev_unregister(struct snd_soc_codec *codec)
+{
+	if (codec->ac97->dev.bus)
+		device_unregister(&codec->ac97->dev);
+	return 0;
+}
+
+/* stop no dev release warning */
+static void soc_ac97_device_release(struct device *dev){}
+
+/* register ac97 codec to bus */
+int soc_ac97_dev_register(struct snd_soc_codec *codec)
+{
+	int err;
+
+	codec->ac97->dev.bus = &ac97_bus_type;
+	codec->ac97->dev.parent = codec->card->dev;
+	codec->ac97->dev.release = soc_ac97_device_release;
+
+	dev_set_name(&codec->ac97->dev, "%d-%d:%s",
+		     codec->card->snd_card->number, 0, codec->name);
+	err = device_register(&codec->ac97->dev);
+	if (err < 0) {
+		dev_err(codec->dev, "ASoC: Can't register ac97 bus\n");
+		codec->ac97->dev.bus = NULL;
+		return err;
+	}
+	return 0;
+}
+EXPORT_SYMBOL_GPL(soc_ac97_dev_register);
+#endif
+
 static void codec2codec_close_delayed_work(struct work_struct *work)
 {
 	/* Currently nothing to do for c2c links
