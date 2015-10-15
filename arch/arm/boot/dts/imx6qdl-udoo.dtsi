@@ -112,7 +112,20 @@
 	};
 };
 
-&uart2 {
+&ssi1 {
+	compatible = "fsl,imx6q-ssi", "fsl,imx51-ssi", "fsl,imx21-ssi";
+	fsl,mode = "ac97-slave";
+	pinctrl-names = "default", "ac97-running", "ac97-reset", "ac97-warm-reset";
+	pinctrl-0 = <&ac97link_running>;
+	pinctrl-1 = <&ac97link_running>;
+	pinctrl-2 = <&ac97link_reset>;
+	pinctrl-3 = <&ac97link_warm_reset>;
+	/* sync, sdata (output), reset */
+	ac97-gpios = <&gpio4 19 0 &gpio4 18 0 &gpio2 30 0>;	
+	status = "okay";
+}; 
+
+&uart2 { // iMX6 serial debug port - ttymxc1, available on micro USB CN6 (jumper J18 plugged)
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2>;
 	status = "okay";
