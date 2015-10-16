@@ -957,15 +957,14 @@ static struct platform_driver busfreq_driver = {
 
 static int __init busfreq_init(void)
 {
-	if (vpu352) {
-		printk(KERN_INFO "VPU@352Mhz activated. Bus freq driver module inactive\n");
-		return 0;
-	}
-
 	if (platform_driver_register(&busfreq_driver) != 0)
 		return -ENODEV;
 
-	printk(KERN_INFO "Bus freq driver module loaded\n");
+	if (vpu352) {
+		printk(KERN_INFO "VPU@352Mhz activated. Bus freq driver module inactive\n");
+		bus_freq_scaling_is_active = 0;
+	} else
+		printk(KERN_INFO "Bus freq driver module loaded\n");
 
 	return 0;
 }
