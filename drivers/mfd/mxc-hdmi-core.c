@@ -106,7 +106,7 @@ unsigned int hdmi_set_cable_state(unsigned int state)
 
 	if (check_hdmi_state() && substream && hdmi_abort_state) {
 		hdmi_abort_state = 0;
-		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_START);
+		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_PAUSE_RELEASE);
 	}
 	return 0;
 }
@@ -123,7 +123,7 @@ unsigned int hdmi_set_blank_state(unsigned int state)
 
 	if (check_hdmi_state() && substream && hdmi_abort_state) {
 		hdmi_abort_state = 0;
-		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_START);
+		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_PAUSE_RELEASE);
 	}
 	return 0;
 }
@@ -137,7 +137,7 @@ static void hdmi_audio_abort_stream(struct snd_pcm_substream *substream)
 
 	if (snd_pcm_running(substream)) {
 		hdmi_abort_state = 1;
-		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_STOP);
+		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_PAUSE_PUSH);
 	}
 
 	snd_pcm_stream_unlock_irqrestore(substream, flags);
