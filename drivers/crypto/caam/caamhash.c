@@ -1813,6 +1813,8 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = ahash_setkey,
 			.halg = {
 				.digestsize = SHA1_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_SHA1,
@@ -1834,6 +1836,8 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = ahash_setkey,
 			.halg = {
 				.digestsize = SHA224_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_SHA224,
@@ -1855,6 +1859,8 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = ahash_setkey,
 			.halg = {
 				.digestsize = SHA256_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_SHA256,
@@ -1876,6 +1882,8 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = ahash_setkey,
 			.halg = {
 				.digestsize = SHA384_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_SHA384,
@@ -1897,6 +1905,8 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = ahash_setkey,
 			.halg = {
 				.digestsize = SHA512_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_SHA512,
@@ -1918,12 +1928,13 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = ahash_setkey,
 			.halg = {
 				.digestsize = MD5_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_MD5,
 		.alg_op = OP_ALG_ALGSEL_MD5 | OP_ALG_AAI_HMAC,
-	},
-	 {
+	}, {
 		.name = "xcbc(aes)",
 		.driver_name = "xcbc-aes-caam",
 		.hmac_name = "xcbc(aes)",
@@ -1940,6 +1951,8 @@ static struct caam_hash_template driver_hash[] = {
 			.setkey = axcbc_setkey,
 			.halg = {
 				.digestsize = XCBC_MAC_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_hash_ctx) + \
+					     sizeof(struct caam_hash_state),
 				},
 			},
 		.alg_type = OP_ALG_ALGSEL_AES | OP_ALG_AAI_XCBC_MAC,
