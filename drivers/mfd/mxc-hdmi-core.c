@@ -144,7 +144,7 @@ int mxc_hdmi_abort_stream(void)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&hdmi_audio_lock, flags);
-	if (hdmi_audio_stream_playback)
+	if (hdmi_audio_stream_playback && !hdmi_abort_state)
 		hdmi_audio_abort_stream(hdmi_audio_stream_playback);
 	spin_unlock_irqrestore(&hdmi_audio_lock, flags);
 
