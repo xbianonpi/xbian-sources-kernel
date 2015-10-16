@@ -30,6 +30,9 @@
 #include <linux/fb.h>
 #include <video/mxc_edid.h>
 #include "../fbdev/edid.h"
+#ifdef EDID_LENGTH
+#undef EDID_LENGTH
+#endif
 
 #include <drm/drm_edid.h>
 #include <drm/drm_crtc.h>
