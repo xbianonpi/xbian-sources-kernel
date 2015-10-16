@@ -1970,6 +1970,7 @@ static void mxc_hdmi_phy_disable(struct mxc_hdmi *hdmi)
 	if (!hdmi->phy_enabled)
 		return;
 
+	mxc_hdmi_abort_stream();
 	hdmi_disable_overflow_interrupts();
 
 	/* Setting PHY to reset status */
