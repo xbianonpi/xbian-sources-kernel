@@ -145,10 +145,8 @@ static int vpu_jpu_irq;
 static unsigned int regBk[64];
 static unsigned int pc_before_suspend;
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 static struct regulator *vpu_regulator;
-#endif
 #endif
 static atomic_t clk_cnt_from_ioc = ATOMIC_INIT(0);
 
@@ -188,7 +186,6 @@ static long vpu_power_get(bool on)
 {
 	long ret = 0;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 	if (on) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0)
 		vpu_regulator = regulator_get(NULL, "cpu_vddvpu");
@@ -203,7 +200,6 @@ static long vpu_power_get(bool on)
 			regulator_put(vpu_regulator);
 #endif
 	}
-#endif
 	return ret;
 }
 
@@ -214,7 +210,6 @@ static void vpu_power_up(bool on)
 		pm_runtime_get_sync(vpu_dev);
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	if (on) {
 		if (!IS_ERR(vpu_regulator)) {
@@ -229,7 +224,6 @@ static void vpu_power_up(bool on)
 	}
 #else
 	imx_gpc_power_up_pu(on);
-#endif
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
@@ -966,6 +960,23 @@ static int vpu_dev_probe(struct platform_device *pdev)
 		goto err_out_class;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+	pm_runtime_enable(vpu_dev);
+#endif
+
+	if (vpu_power_get(true)) {
+		if (!(cpu_is_mx51() || cpu_is_mx53())) {
+			dev_err(vpu_dev, "failed to get vpu power\n");
+			goto err_out_class;
+		} else {
+			/* regulator_get will return error on MX5x,
+			 * just igore it everywhere*/
+			dev_warn(vpu_dev, "failed to get vpu power\n");
+		}
+	}
+
+	vpu_power_up(true);
+
 	vpu_clk = clk_get(&pdev->dev, "per");
 	if (IS_ERR(vpu_clk)) {
 		err = -ENOENT;
@@ -982,16 +993,6 @@ static int vpu_dev_probe(struct platform_device *pdev)
 			  (void *)(&vpu_data));
 	if (err)
 		goto err_out_class;
-	if (vpu_power_get(true)) {
-		if (!(cpu_is_mx51() || cpu_is_mx53())) {
-			dev_err(vpu_dev, "failed to get vpu power\n");
-			goto err_out_class;
-		} else {
-			/* regulator_get will return error on MX5x,
-			 * just igore it everywhere*/
-			dev_warn(vpu_dev, "failed to get vpu power\n");
-		}
-	}
 
 #ifdef MXC_VPU_HAS_JPU
 	vpu_jpu_irq = platform_get_irq_byname(pdev, "jpeg");
@@ -1009,14 +1010,12 @@ static int vpu_dev_probe(struct platform_device *pdev)
 	}
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
-	pm_runtime_enable(&pdev->dev);
-#endif
-
 	vpu_data.workqueue = create_workqueue("vpu_wq");
 	INIT_WORK(&vpu_data.work, vpu_worker_callback);
 	mutex_init(&vpu_data.lock);
 	dev_info(vpu_dev, "VPU initialized\n");
+
+	vpu_power_up(false);
 	goto out;
 
 err_out_class:
@@ -1056,7 +1055,6 @@ static int vpu_dev_remove(struct platform_device *pdev)
 		iram_free(iram.start,  vpu_plat->iram_size);
 #endif
 
-	vpu_power_get(false);
 	return 0;
 }
 
