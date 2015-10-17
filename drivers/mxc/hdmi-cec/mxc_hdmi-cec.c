@@ -85,6 +85,8 @@ struct hdmi_cec_shared {
 	u16 addresses;
 	u8 latest_cec_stat;
 	u32 physical_address;
+	struct work_struct hdmi_cec_hwq;
+	bool hpt_event;
 };
 
 static struct hdmi_cec_shared hdmi_cec_root;
@@ -234,15 +236,21 @@ static void __mxc_hdmi_cec_msg(struct hdmi_cec_event_list *event, struct hdmi_ce
 
 void mxc_hdmi_cec_handle(u32 cec_stat)
 {
-	struct hdmi_cec_event_list *event = NULL;
-	struct hdmi_cec_priv *client = NULL;
-
 	if (cec_stat)
 		hdmi_cec_root.physical_address = cec_stat;
 
-	/* HDMI cable connected / HDMI cable disconnected */
+	hdmi_cec_root.hpt_event = !!cec_stat;
 	if (!hdmi_cec_ready)
 		return;
+	schedule_work(&hdmi_cec_root.hdmi_cec_hwq);
+}
+EXPORT_SYMBOL(mxc_hdmi_cec_handle);
+
+void mxc_hdmi_cec_handle_worker(struct work_struct *work)
+{
+	struct hdmi_cec_event_list *event = NULL;
+	struct hdmi_cec_priv *client = NULL;
+
 	pr_debug("%s: enter\n", __func__);
 
 	event = kzalloc(sizeof(struct hdmi_cec_event_list), GFP_ATOMIC);
@@ -250,7 +258,7 @@ void mxc_hdmi_cec_handle(u32 cec_stat)
 		pr_err("%s: Not enough memory!\n", __func__);
 		return;
 	}
-	event->data.event_type = cec_stat ?
+	event->data.event_type = hdmi_cec_root.hpt_event ?
 		MESSAGE_TYPE_CONNECTED : MESSAGE_TYPE_DISCONNECTED;
 
 	list_for_each_entry(client, &hdmi_cec_root.client_head, client_node) {
@@ -261,7 +269,6 @@ void mxc_hdmi_cec_handle(u32 cec_stat)
 	}
 	pr_debug("%s: exit\n", __func__);
 }
-EXPORT_SYMBOL(mxc_hdmi_cec_handle);
 
 void mxc_hdmi_cec_msg(void)
 {
@@ -745,6 +752,7 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 	hdmi_cec_root.addresses = 0;
 	platform_set_drvdata(pdev, &hdmi_cec_root);
 	INIT_DELAYED_WORK(&hdmi_cec_root.hdmi_cec_work, mxc_hdmi_cec_worker);
+	INIT_WORK(&hdmi_cec_root.hdmi_cec_hwq, mxc_hdmi_cec_handle_worker);
 
 	dev_info(&pdev->dev, "%s: HDMI CEC initialized\n", __func__);
 	hdmi_cec_ready = 1;
