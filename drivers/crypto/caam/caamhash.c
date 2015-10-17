@@ -2211,8 +2211,9 @@ static int __init caam_algapi_hash_init(void)
 
 		err = crypto_register_ahash(&t_alg->ahash_alg);
 		if (err) {
-			dev_warn(ctrldev, "%s alg registration failed\n",
-				t_alg->ahash_alg.halg.base.cra_driver_name);
+			pr_warn("%s alg registration failed: %d\n",
+				t_alg->ahash_alg.halg.base.cra_driver_name,
+				err);
 			kfree(t_alg);
 		} else
 			list_add_tail(&t_alg->entry, &priv->hash_list);
@@ -2228,8 +2229,9 @@ static int __init caam_algapi_hash_init(void)
 
 		err = crypto_register_ahash(&t_alg->ahash_alg);
 		if (err) {
-			dev_warn(ctrldev, "%s alg registration failed\n",
-				t_alg->ahash_alg.halg.base.cra_driver_name);
+			pr_warn("%s alg registration failed: %d\n",
+				t_alg->ahash_alg.halg.base.cra_driver_name,
+				err);
 			kfree(t_alg);
 		} else
 			list_add_tail(&t_alg->entry, &priv->hash_list);
