@@ -7339,24 +7339,20 @@ OnError:
 **
 **      Nothing.
 */
-gceSTATUS
-gckOS_DestroySignal(
+static gceSTATUS
+gckOS_DestroySignalEx(
     IN gckOS Os,
     IN gctSIGNAL Signal
     )
 {
     gceSTATUS status;
     gcsSIGNAL_PTR signal;
-    gctBOOL acquired = gcvFALSE;
 
     gcmkHEADER_ARG("Os=0x%X Signal=0x%X", Os, Signal);
 
     /* Verify the arguments. */
     gcmkVERIFY_OBJECT(Os, gcvOBJ_OS);
     gcmkVERIFY_ARGUMENT(Signal != gcvNULL);
-
-    gcmkONERROR(gckOS_AcquireMutex(Os, Os->signalMutex, gcvINFINITE));
-    acquired = gcvTRUE;
 
     gcmkONERROR(_QueryIntegerId(&Os->signalDB, (gctUINT32)(gctUINTPTR_T)Signal, (gctPOINTER)&signal));
 
@@ -7369,6 +7365,35 @@ gckOS_DestroySignal(
         /* Free the sgianl. */
         kfree(signal);
     }
+
+    /* Success. */
+    gcmkFOOTER_NO();
+    return gcvSTATUS_OK;
+
+OnError:
+    gcmkFOOTER();
+    return status;
+}
+
+gceSTATUS
+gckOS_DestroySignal(
+    IN gckOS Os,
+    IN gctSIGNAL Signal
+    )
+{
+    gceSTATUS status;
+    gctBOOL acquired = gcvFALSE;
+
+    gcmkHEADER_ARG("Os=0x%X Signal=0x%X", Os, Signal);
+
+    /* Verify the arguments. */
+    gcmkVERIFY_OBJECT(Os, gcvOBJ_OS);
+    gcmkVERIFY_ARGUMENT(Signal != gcvNULL);
+
+    gcmkONERROR(gckOS_AcquireMutex(Os, Os->signalMutex, gcvINFINITE));
+    acquired = gcvTRUE;
+
+    gcmkONERROR(gckOS_DestroySignalEx(Os, Signal));
 
     gcmkVERIFY_OK(gckOS_ReleaseMutex(Os, Os->signalMutex));
     acquired = gcvFALSE;
@@ -7410,8 +7435,8 @@ OnError:
 **
 **      Nothing.
 */
-gceSTATUS
-gckOS_Signal(
+static gceSTATUS
+gckOS_SignalEx(
     IN gckOS Os,
     IN gctSIGNAL Signal,
     IN gctBOOL State
@@ -7419,16 +7444,12 @@ gckOS_Signal(
 {
     gceSTATUS status;
     gcsSIGNAL_PTR signal;
-    gctBOOL acquired = gcvFALSE;
 
     gcmkHEADER_ARG("Os=0x%X Signal=0x%X State=%d", Os, Signal, State);
 
     /* Verify the arguments. */
     gcmkVERIFY_OBJECT(Os, gcvOBJ_OS);
     gcmkVERIFY_ARGUMENT(Signal != gcvNULL);
-
-    gcmkONERROR(gckOS_AcquireMutex(Os, Os->signalMutex, gcvINFINITE));
-    acquired = gcvTRUE;
 
     gcmkONERROR(_QueryIntegerId(&Os->signalDB, (gctUINT32)(gctUINTPTR_T)Signal, (gctPOINTER)&signal));
 
@@ -7447,6 +7468,36 @@ gckOS_Signal(
         /* Set the event to an unsignaled state. */
         reinit_completion(&signal->obj);
     }
+
+    /* Success. */
+    gcmkFOOTER_NO();
+    return gcvSTATUS_OK;
+
+OnError:
+    gcmkFOOTER();
+    return status;
+}
+
+gceSTATUS
+gckOS_Signal(
+    IN gckOS Os,
+    IN gctSIGNAL Signal,
+    IN gctBOOL State
+    )
+{
+    gceSTATUS status;
+    gctBOOL acquired = gcvFALSE;
+
+    gcmkHEADER_ARG("Os=0x%X Signal=0x%X State=%d", Os, Signal, State);
+
+    /* Verify the arguments. */
+    gcmkVERIFY_OBJECT(Os, gcvOBJ_OS);
+    gcmkVERIFY_ARGUMENT(Signal != gcvNULL);
+
+    gcmkONERROR(gckOS_AcquireMutex(Os, Os->signalMutex, gcvINFINITE));
+    acquired = gcvTRUE;
+
+    gcmkONERROR(gckOS_SignalEx(Os, Signal, State));
 
     gcmkVERIFY_OK(gckOS_ReleaseMutex(Os, Os->signalMutex));
     acquired = gcvFALSE;
@@ -7556,23 +7607,43 @@ gckOS_UserSignal(
 {
     gceSTATUS status;
     gctSIGNAL signal;
+    gctBOOL acquired = gcvFALSE;
+    gctBOOL user = (Process != gcvNULL);
 
     gcmkHEADER_ARG("Os=0x%X Signal=0x%X Process=%d",
                    Os, Signal, (gctINT32)(gctUINTPTR_T)Process);
 
-    /* Map the signal into kernel space. */
-    gcmkONERROR(gckOS_MapSignal(Os, Signal, Process, &signal));
+    gcmkONERROR(gckOS_AcquireMutex(Os, Os->signalMutex, gcvINFINITE));
+    acquired = gcvTRUE;
 
-    /* Signal. */
-    status = gckOS_Signal(Os, signal, gcvTRUE);
+    if (user)
+    {
+        /* Map the signal into kernel space. */
+        gcmkONERROR(gckOS_MapSignal(Os, Signal, Process, &signal));
 
-    /* Unmap the signal */
-    gcmkVERIFY_OK(gckOS_UnmapSignal(Os, Signal));
+        /* Signal. */
+        gcmkONERROR(gckOS_SignalEx(Os, signal, gcvTRUE));
+
+        /* Unmap the signal */
+        gcmkVERIFY_OK(gckOS_UnmapSignal(Os, Signal));
+    } else {
+        /* Signal. */
+        gcmkONERROR(gckOS_SignalEx(Os, Signal, gcvTRUE));
+    }
+
+    gcmkVERIFY_OK(gckOS_ReleaseMutex(Os, Os->signalMutex));
+    acquired = gcvFALSE;
 
     gcmkFOOTER();
     return status;
 
 OnError:
+    if (acquired)
+    {
+        /* Release the mutex. */
+        gcmkVERIFY_OK(gckOS_ReleaseMutex(Os, Os->signalMutex));
+    }
+
     /* Return the status. */
     gcmkFOOTER();
     return status;
@@ -7829,7 +7900,7 @@ gckOS_UnmapSignal(
     IN gctSIGNAL Signal
     )
 {
-    return gckOS_DestroySignal(Os, Signal);
+    return gckOS_DestroySignalEx(Os, Signal);
 }
 
 /*******************************************************************************
