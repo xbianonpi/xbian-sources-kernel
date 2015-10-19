@@ -73,6 +73,7 @@ struct hdmi_cec_event_list {
 
 struct hdmi_cec_shared {
 	bool write_busy;
+	struct mutex rw_lock;
 	int  receive_error;
 	int  send_error;
 	struct delayed_work hdmi_cec_work;
@@ -261,12 +262,12 @@ void mxc_hdmi_cec_handle_worker(struct work_struct *work)
 	event->data.event_type = hdmi_cec_root.hpt_event ?
 		MESSAGE_TYPE_CONNECTED : MESSAGE_TYPE_DISCONNECTED;
 
+	mutex_lock(&hdmi_cec_root.m_lock);
 	list_for_each_entry(client, &hdmi_cec_root.client_head, client_node) {
-		mutex_lock(&hdmi_cec_root.m_lock);
 		__mxc_hdmi_cec_msg(event, client, NULL, 0);
-		mutex_unlock(&hdmi_cec_root.m_lock);
 		wake_up(&client->hdmi_cec_qm);
 	}
+	mutex_unlock(&hdmi_cec_root.m_lock);
 	pr_debug("%s: exit\n", __func__);
 }
 
@@ -425,7 +426,7 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	else if (wait_event_interruptible(hdmi_cec_qw, (!hdmi_cec_root.write_busy)))
 		return -ERESTARTSYS;
 
-	mutex_lock(&hdmi_cec_root.m_lock);
+	mutex_lock(&hdmi_cec_root.rw_lock);
 	pr_debug("%s: \n", __func__);
 	hdmi_cec_root.write_busy = true;
 
@@ -461,7 +462,7 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 		}
 	} while(!ret);
 
-	mutex_unlock(&hdmi_cec_root.m_lock);
+	mutex_unlock(&hdmi_cec_root.rw_lock);
 	wake_up(&hdmi_cec_qw);
 	return ret;
 }
@@ -749,6 +750,7 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&hdmi_cec_root.buffer_head);
 
 	mutex_init(&hdmi_cec_root.m_lock);
+	mutex_init(&hdmi_cec_root.rw_lock);
 	hdmi_cec_root.addresses = 0;
 	platform_set_drvdata(pdev, &hdmi_cec_root);
 	INIT_DELAYED_WORK(&hdmi_cec_root.hdmi_cec_work, mxc_hdmi_cec_worker);
