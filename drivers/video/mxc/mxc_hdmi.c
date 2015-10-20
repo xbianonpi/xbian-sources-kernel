@@ -199,7 +199,6 @@ struct mxc_hdmi {
 	bool phy_enabled;
 	struct fb_videomode default_mode;
 	struct fb_var_screeninfo previous_non_vga_mode;
-	bool requesting_vga_for_initialization;
 
 	int *gpr_base;
 	int *gpr_hdmi_base;
@@ -2314,7 +2313,6 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	if (!hdmi->dft_mode_set) {
 		fb_videomode_to_var(&var, &hdmi->default_mode);
 		hdmi->dft_mode_set = true;
-		hdmi->requesting_vga_for_initialization = false;
 	} else
 		memcpy(&var, &hdmi->previous_non_vga_mode,
 		       sizeof(struct fb_var_screeninfo));
@@ -2343,7 +2341,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		if (hdmi->previous_non_vga_mode.xres_virtual)
 			memcpy(&hdmi->fbi->var.xres_virtual, &hdmi->previous_non_vga_mode.xres_virtual, 2 *sizeof(u32));
 		mxc_hdmi_setup(hdmi, 0);
-	} else if (mxc_edid_fb_mode_is_equal(true, &m, mode, ~0) && edid_status != HDMI_EDID_SAME) {
+	} else if (mxc_fb_mode_is_equal_res(&m, mode) && edid_status != HDMI_EDID_SAME) {
 		dev_dbg(&hdmi->pdev->dev,
 				"%s: Video mode same as previous, EDID changed\n", __func__);
 		fb_videomode_to_var(&hdmi->fbi->var, mode);
@@ -2658,7 +2656,7 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 	dev_dbg(&hdmi->pdev->dev, "%s - video mode changed\n", __func__);
 
 	hdmi->vic = 0;
-	if (!hdmi->requesting_vga_for_initialization) {
+	{
 		/* Save mode if this isn't the result of requesting
 		 * vga default. */
 		memcpy(&hdmi->previous_non_vga_mode, &hdmi->fbi->var,
