@@ -2671,6 +2671,9 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		}
 	}
 
+	if (hdmi->blank != FB_BLANK_UNBLANK)
+		return;
+
 	hdmi_disable_overflow_interrupts();
 
 	if ((hdmi->hp_state == HDMI_HOTPLUG_CONNECTED_HDMI) ||
