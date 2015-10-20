@@ -2246,6 +2246,7 @@ static const struct of_device_id mxc_v4l2_dt_ids[] = {
 	{ .compatible = "fsl,mxc_v4l2_output", },
 	{ /* sentinel */ }
 };
+MODULE_DEVICE_TABLE(of, mxc_v4l2_dt_ids);
 
 static struct platform_driver mxc_vout_driver = {
 	.driver = {
