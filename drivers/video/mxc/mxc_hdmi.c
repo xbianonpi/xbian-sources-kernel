@@ -2068,7 +2068,7 @@ static void hdmi_disable_overflow_interrupts(void)
 	hdmi_writeb(0x7f, HDMI_FC_MASK2);
 }
 
-static void mxc_hdmi_notify_fb(struct mxc_hdmi *hdmi)
+static void mxc_hdmi_notify_fb(struct mxc_hdmi *hdmi, bool force_all)
 {
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2085,6 +2085,13 @@ static void mxc_hdmi_notify_fb(struct mxc_hdmi *hdmi)
 	 * will be done.
 	 */
 	hdmi->fbi->var.activate |= FB_ACTIVATE_FORCE;
+
+	/* If new screen was attached and resolutions
+	 * reconfigured to best fit it, force reconf all consoles
+	 */
+	if (force_all)
+		hdmi->fbi->var.activate |= FB_ACTIVATE_ALL;
+
 	console_lock();
 	hdmi->fbi->flags |= FBINFO_MISC_USEREVENT;
 	fb_set_var(hdmi->fbi, &hdmi->fbi->var);
@@ -2306,6 +2313,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	struct fb_videomode m;
 	struct fb_var_screeninfo var;
 	u32 l;
+	bool new_screen = false;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2317,12 +2325,17 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		memcpy(&var, &hdmi->previous_non_vga_mode,
 		       sizeof(struct fb_var_screeninfo));
 
-	fb_var_to_videomode(&m, &var);
-
-	mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist, false);
-	if (!mode) {
-		pr_err("%s: could not find mode in modelist\n", __func__);
-		return;
+	/* check for active xBuffer, look for similar (x/y/hz/vmode) mode
+	 * otherwise be nice looking for best (new) display mode */
+	if (edid_status == HDMI_EDID_SUCCESS && !hdmi->prev_virtual.xres_virtual) {
+		dev_dbg(&hdmi->pdev->dev,
+				"xBuffer not active, trying new best display mode\n");
+		mode = fb_find_best_display(&hdmi->fbi->monspecs, &hdmi->fbi->modelist);
+		new_screen = !!mode;
+	} else {
+		fb_var_to_videomode(&m, &var);
+		dump_fb_videomode(&m);
+		mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist, false);
 	}
 
 	console_lock();
@@ -2347,11 +2360,13 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		fb_videomode_to_var(&hdmi->fbi->var, mode);
 		if (hdmi->previous_non_vga_mode.xres_virtual)
 			memcpy(&hdmi->fbi->var.xres_virtual, &hdmi->previous_non_vga_mode.xres_virtual, 2 *sizeof(u32));
+		/* update hdmi setting in case EDID data updated  */
+		mxc_hdmi_notify_fb(hdmi, new_screen);
 		mxc_hdmi_notify_fb(hdmi);
 	} else if (edid_status != HDMI_EDID_SAME) {
 		dev_dbg(&hdmi->pdev->dev, "%s: New video mode\n", __func__);
 		fb_videomode_to_var(&hdmi->fbi->var, mode);
-		mxc_hdmi_notify_fb(hdmi);
+		mxc_hdmi_notify_fb(hdmi, new_screen);
 	}
 
 #ifdef CONFIG_MXC_HDMI_CEC
