@@ -46,6 +46,8 @@
 #include <sound/pcm.h>
 #include <sound/control.h>
 
+#include <linux/pci.h>
+
 #include "tw6869.h"
 
 MODULE_DESCRIPTION("tw6869/65 media bridge driver");
@@ -580,7 +582,7 @@ static int start_streaming(struct vb2_queue *vq, unsigned int count)
 	return 0;
 }
 
-static int stop_streaming(struct vb2_queue *vq)
+static void stop_streaming(struct vb2_queue *vq)
 {
 	struct tw6869_vch *vch = vb2_get_drv_priv(vq);
 	struct tw6869_dev *dev = vch->dev;
@@ -609,8 +611,6 @@ static int stop_streaming(struct vb2_queue *vq)
 		list_del(&buf->list);
 	}
 	spin_unlock_irqrestore(&vch->lock, flags);
-
-	return 0;
 }
 
 static struct vb2_ops tw6869_qops = {
@@ -975,7 +975,7 @@ static int tw6869_vch_register(struct tw6869_vch *vch)
 	q->buf_struct_size = sizeof(struct tw6869_buf);
 	q->ops = &tw6869_qops;
 	q->mem_ops = &vb2_dma_contig_memops;
-	q->timestamp_type = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 	q->lock = &vch->mlock;
 	q->gfp_flags = __GFP_DMA32;
 	ret = vb2_queue_init(q);
@@ -1278,8 +1278,12 @@ static int tw6869_audio_register(struct tw6869_dev *dev)
 	struct snd_card *card;
 	int ret;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
 	ret = snd_card_create(SNDRV_DEFAULT_IDX1, KBUILD_MODNAME,
 				THIS_MODULE, 0, &card);
+#else
+	ret = snd_card_new(&pdev->dev, SNDRV_DEFAULT_IDX1, KBUILD_MODNAME, THIS_MODULE, 0, &card);
+#endif
 	if (ret < 0)
 		return ret;
 
