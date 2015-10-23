@@ -1364,6 +1364,9 @@ static int sgtl5000_probe(struct snd_soc_codec *codec)
 
 	snd_soc_write(codec, SGTL5000_CHIP_MIC_CTRL, 2);
 
+	snd_soc_update_bits(codec, SGTL5000_CHIP_MIC_CTRL,
+			SGTL5000_BIAS_VOLT_MASK,
+			sgtl5000->micbias_voltage << SGTL5000_BIAS_VOLT_SHIFT);
 	/*
 	 * disable DAP
 	 * TODO:
