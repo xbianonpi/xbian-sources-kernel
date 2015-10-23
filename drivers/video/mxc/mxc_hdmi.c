@@ -2200,7 +2200,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		 */
 		mode = &hdmi->fbi->monspecs.modedb[i];
 
-		if (!(mode->flag & fmasks[k]))
+		if (fmasks[k] != ~0 && !(mode->flag & fmasks[k]))
 			continue;
 
 		if ((vic = mxc_edid_mode_to_vic(mode, 0)))
