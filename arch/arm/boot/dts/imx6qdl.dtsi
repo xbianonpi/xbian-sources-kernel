@@ -1210,13 +1210,13 @@
 				status = "disabled";
 			};
 
-			mipi_csi: mipi@021dc000 {
+			mipi_csi: mipi_csi@021dc000 {
 				reg = <0x021dc000 0x4000>;
 				compatible = "fsl,imx6q-mipi-csi2";
 				interrupts = <0 100 0x04>, <0 101 0x04>;
 				clocks = <&clks IMX6QDL_CLK_HSI_TX>,
 					 <&clks IMX6QDL_CLK_EIM_SEL>,
-					 <&clks IMX6QDL_CLK_LVDS2_IN>;
+					 <&clks IMX6QDL_CLK_VIDEO_27M>;
 				/* Note: clks 138 is hsi_tx, however, the dphy_c
                                  * hsi_tx and pll_refclk use the same clk gate.
                                  * In current clk driver, open/close clk gate do
@@ -1226,16 +1226,8 @@
 				status = "disabled";
 			};
 
-			mipi_dsi: mipi@021e0000 {
-				compatible = "fsl,imx6q-mipi-dsi";
-				#address-cells = <1>;
-				#size-cells = <0>;
+			mipi@021e0000 { /* MIPI-DSI */
 				reg = <0x021e0000 0x4000>;
-				status = "disabled";
-				interrupts = <0 102 0x04>;
-				gpr = <&gpr>;
-				clocks = <&clks IMX6QDL_CLK_HSI_TX>, <&clks IMX6QDL_CLK_VIDEO_27M>;
-				clock-names = "mipi_pllref_clk", "mipi_cfg_clk";
 			};
 
 			vdoa@021e4000 {
