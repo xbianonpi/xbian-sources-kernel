@@ -372,6 +372,7 @@ gckGALDEVICE_Construct(
     device->pmdev = pdev;
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0)
     /*get gpu regulator*/
     device->gpu_regulator = regulator_get(pdev, "cpu_vddgpu");
@@ -386,6 +387,7 @@ gckGALDEVICE_Construct(
 		PARENT_FILE, DEBUG_FILE);
 	gcmkONERROR(gcvSTATUS_NOT_FOUND);
     }
+#endif
 #endif
     /*Initialize the clock structure*/
     if (IrqLine != -1) {

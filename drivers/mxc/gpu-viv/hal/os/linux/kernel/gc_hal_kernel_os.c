@@ -6780,8 +6780,10 @@ gckOS_SetGPUPower(
     struct clk *clk_2dcore = Os->device->clk_2d_core;
     struct clk *clk_2d_axi = Os->device->clk_2d_axi;
     struct clk *clk_vg_axi = Os->device->clk_vg_axi;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
     int ret;
+#endif
 #endif
 
     gctBOOL oldClockState = gcvFALSE;
@@ -6808,6 +6810,7 @@ gckOS_SetGPUPower(
     }
 	if((Power == gcvTRUE) && (oldPowerState == gcvFALSE))
 	{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
         if(!IS_ERR(Os->device->gpu_regulator)) {
             ret = regulator_enable(Os->device->gpu_regulator);
@@ -6817,6 +6820,7 @@ gckOS_SetGPUPower(
         }
 #else
         imx_gpc_power_up_pu(true);
+#endif
 #endif
 
 #ifdef CONFIG_PM
@@ -6915,11 +6919,13 @@ gckOS_SetGPUPower(
 		pm_runtime_put_sync(Os->device->pmdev);
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
         if(!IS_ERR(Os->device->gpu_regulator))
             regulator_disable(Os->device->gpu_regulator);
 #else
         imx_gpc_power_up_pu(false);
+#endif
 #endif
 
 	}
