@@ -194,6 +194,11 @@ struct regmap *syscon_regmap_lookup_by_phandle(struct device_node *np,
 }
 EXPORT_SYMBOL_GPL(syscon_regmap_lookup_by_phandle);
 
+static const struct of_device_id of_syscon_match[] = {
+	{ .compatible = "syscon", },
+	{ },
+};
+
 static int syscon_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -239,6 +244,7 @@ static const struct platform_device_id syscon_ids[] = {
 static struct platform_driver syscon_driver = {
 	.driver = {
 		.name = "syscon",
+		.of_match_table = of_syscon_match,
 	},
 	.probe		= syscon_probe,
 	.id_table	= syscon_ids,
