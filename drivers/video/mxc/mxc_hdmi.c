@@ -2524,11 +2524,11 @@ static void mxc_hdmi_cable_disconnected(struct mxc_hdmi *hdmi)
 	hdmi_disable_overflow_interrupts();
 	hdmi_writeb(clkdis, HDMI_MC_CLKDIS);
 
+	hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
+
 	console_lock();
 	fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
 	console_unlock();
-
-	hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
 }
 
 static void hotplug_worker(struct work_struct *work)
@@ -2863,7 +2863,7 @@ static int mxc_hdmi_fb_event(struct notifier_block *nb,
 		break;
 
 	case FB_EVENT_BLANK:
-		if (!hdmi->fb_reg || hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED) {
+		if (!hdmi->fb_reg || (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED && *((int *)event->data) == FB_BLANK_UNBLANK)) {
 			dev_dbg(&hdmi->pdev->dev,
 				"event=FB_EVENT_BLANK - NOOP\n");
 			break;
