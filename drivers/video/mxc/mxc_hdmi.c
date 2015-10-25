@@ -2166,10 +2166,7 @@ static int mxc_fb_check_existing(struct fb_videomode *match, struct list_head *h
 	list_for_each(pos, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
 		mode = &modelist->mode;
-		if (match->xres == mode->xres
-		&&  match->yres == mode->yres
-		&&  match->refresh == mode->refresh
-		&& (match->vmode & (FB_VMODE_MASK ^ FB_VMODE_ASPECT_MASK)) == (mode->vmode & (FB_VMODE_MASK ^ FB_VMODE_ASPECT_MASK)))
+		if (mxc_fb_mode_is_equal_res(match, mode))
 			return 1;
 	}
 	return 0;
