@@ -1422,6 +1422,10 @@ int mxcfb_blank(int blank, struct fb_info *info)
 		if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->disable)
 			mxc_fbi->dispdrv->drv->disable(mxc_fbi->dispdrv, info);
 		ipu_disable_channel(mxc_fbi->ipu, mxc_fbi->ipu_ch, true);
+
+		init_completion(&mxc_fbi->vsync_complete);
+		complete(&mxc_fbi->vsync_complete);
+
 		if (mxc_fbi->ipu_di >= 0)
 			ipu_uninit_sync_panel(mxc_fbi->ipu, mxc_fbi->ipu_di);
 		ipu_uninit_channel(mxc_fbi->ipu, mxc_fbi->ipu_ch);
