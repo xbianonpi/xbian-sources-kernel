@@ -143,8 +143,10 @@ static int vpu_jpu_irq;
 static unsigned int regBk[64];
 static unsigned int pc_before_suspend;
 #endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 static struct regulator *vpu_regulator;
+#endif
 #endif
 static atomic_t clk_cnt_from_ioc = ATOMIC_INIT(0);
 
@@ -185,6 +187,7 @@ static long vpu_power_get(bool on)
 	long ret = 0;
 
 	if (on) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0)
 		vpu_regulator = regulator_get(NULL, "cpu_vddvpu");
 		ret = IS_ERR(vpu_regulator);
@@ -197,6 +200,7 @@ static long vpu_power_get(bool on)
 		if (!IS_ERR(vpu_regulator))
 			regulator_put(vpu_regulator);
 #endif
+#endif
 	}
 	return ret;
 }
@@ -208,6 +212,7 @@ static void vpu_power_up(bool on)
 		pm_runtime_get_sync(vpu_dev);
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0) || LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	if (on) {
 		if (!IS_ERR(vpu_regulator)) {
@@ -222,6 +227,7 @@ static void vpu_power_up(bool on)
 	}
 #else
 	imx_gpc_power_up_pu(on);
+#endif
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
