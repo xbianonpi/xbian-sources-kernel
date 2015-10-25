@@ -2128,7 +2128,8 @@ static void mxc_fb_add_videomode(struct mxc_hdmi *hdmi, const struct fb_videomod
 
 	memcpy(&mode, src_mode, sizeof(struct fb_videomode));
 	mode.flag = new_flag; mode.vmode |= mod_vmode;
-	fb_add_videomode(&mode, modelist);
+	if (fb_add_videomode(&mode, modelist))
+		return;
 	mxc_hdmi_log_modelist(hdmi, &mode);
 }
 
@@ -2156,7 +2157,7 @@ static struct stereo_mandatory_mode stereo_mandatory_modes[] = {
 	{ 20, FB_VMODE_3D_SBS_HALF   }
 };
 
-static int mxc_fb_check_existing(struct fb_videomode *match, int vic, struct list_head *head)
+static int mxc_fb_check_existing(struct fb_videomode *match, struct list_head *head)
 {
 	struct list_head *pos;
 	struct fb_modelist *modelist;
@@ -2215,7 +2216,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		mode->xres = ALIGN2(mode->xres, 8);
 		mode->yres = ALIGN2(mode->yres, 8);
 
-		if (mxc_fb_check_existing(mode, vic, &hdmi->fbi->modelist) || fb_add_videomode(mode, &hdmi->fbi->modelist))
+		if (mxc_fb_check_existing(mode, &hdmi->fbi->modelist) || fb_add_videomode(mode, &hdmi->fbi->modelist))
 			continue;
 
 		mxc_hdmi_log_modelist(hdmi, mode);
@@ -2663,8 +2664,6 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 {
 	struct fb_videomode m;
 	const struct fb_videomode *edid_mode;
-
-	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	fb_var_to_videomode(&m, &hdmi->fbi->var);
 
