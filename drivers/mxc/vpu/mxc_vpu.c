@@ -80,8 +80,6 @@
 
 struct vpu_priv {
 	struct fasync_struct *async_queue;
-	struct work_struct work;
-	struct workqueue_struct *workqueue;
 	struct mutex lock;
 };
 
@@ -298,11 +296,8 @@ static int vpu_free_buffers(void)
 	return 0;
 }
 
-static inline void vpu_worker_callback(struct work_struct *w)
+static inline void vpu_worker(struct vpu_priv *dev)
 {
-	struct vpu_priv *dev = container_of(w, struct vpu_priv,
-				work);
-
 	if (dev->async_queue)
 		kill_fasync(&dev->async_queue, SIGIO, POLL_IN);
 
@@ -330,7 +325,7 @@ static irqreturn_t vpu_ipi_irq_handler(int irq, void *dev_id)
 		codec_done = 1;
 	WRITE_REG(0x1, BIT_INT_CLEAR);
 
-	queue_work(dev->workqueue, &dev->work);
+	vpu_worker(dev);
 
 	return IRQ_HANDLED;
 }
@@ -348,7 +343,7 @@ static irqreturn_t vpu_jpu_irq_handler(int irq, void *dev_id)
 	if (reg & 0x3)
 		codec_done = 1;
 
-	queue_work(dev->workqueue, &dev->work);
+	vpu_worker(dev);
 
 	return IRQ_HANDLED;
 }
@@ -713,8 +708,6 @@ static int vpu_release(struct inode *inode, struct file *filp)
 			clk_unprepare(vpu_clk);
 
 			/* Clean up interrupt */
-			cancel_work_sync(&vpu_data.work);
-			flush_workqueue(vpu_data.workqueue);
 			irq_status = 0;
 
 			clk_prepare(vpu_clk);
@@ -1010,8 +1003,6 @@ static int vpu_dev_probe(struct platform_device *pdev)
 	}
 #endif
 
-	vpu_data.workqueue = create_workqueue("vpu_wq");
-	INIT_WORK(&vpu_data.work, vpu_worker_callback);
 	mutex_init(&vpu_data.lock);
 	dev_info(vpu_dev, "VPU initialized\n");
 
@@ -1038,9 +1029,6 @@ static int vpu_dev_remove(struct platform_device *pdev)
 #ifdef MXC_VPU_HAS_JPU
 	free_irq(vpu_jpu_irq, &vpu_data);
 #endif
-	cancel_work_sync(&vpu_data.work);
-	flush_workqueue(vpu_data.workqueue);
-	destroy_workqueue(vpu_data.workqueue);
 
 	iounmap(vpu_base);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
