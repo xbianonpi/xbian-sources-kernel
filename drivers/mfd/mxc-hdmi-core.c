@@ -414,14 +414,10 @@ static bool hdmi_compute_cts_n(unsigned int freq, unsigned long pixel_clk,
 	cts *= mul;
 
 	/* Check that we are in spec (not always possible) */
-	if (n < (128*freq/1500)) {
-		pr_warn("%s: calculated ACR N value is too small. Audio will be disabled.\n", __func__);
-		return false;
-	}
-	if (n > (128*freq/300)) {
-		pr_warn("%s: calculated ACR N value is too large. Audio will be disabled.\n", __func__);
-		return false;
-	}
+	if (n < (128*freq/1500))
+		pr_warn("%s: calculated ACR N value is too small. Audio might not work correctly.\n", __func__);
+	if (n > (128*freq/300))
+		pr_warn("%s: calculated ACR N value is too large. Audio might not work correctly.\n", __func__);
 
 	*N = n;
 	*CTS = cts;
