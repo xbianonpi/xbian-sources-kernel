@@ -2459,6 +2459,10 @@ static void mxc_hdmi_edid_from_file(const struct firmware *fw, void *data)
 	hdmi->edid_from_fw = fw;
 	mutex_unlock(&hdmi->m_lock);
 
+	console_lock();
+	fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
+	console_unlock();
+
 	mxc_hdmi_cable_connected_edid(hdmi);
 }
 
