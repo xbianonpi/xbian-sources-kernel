@@ -2175,11 +2175,26 @@ static int mxc_fb_check_existing(struct fb_videomode *match, struct list_head *h
 	return 0;
 }
 
+static int mxc_fb_add_fractional(struct mxc_hdmi *hdmi, struct list_head *head)
+{
+	struct list_head *pos;
+	struct fb_modelist *modelist;
+	struct fb_videomode *mode;
+
+	list_for_each(pos, head) {
+		modelist = list_entry(pos, struct fb_modelist, list);
+		mode = &modelist->mode;
+		if (mxc_edid_mode_to_vic(mode, 0) && (mode->refresh == 24 || mode->refresh == 30 || mode->refresh == 60))
+			mxc_fb_add_videomode(hdmi, mode, &hdmi->fbi->modelist, mode->flag, FB_VMODE_FRACTIONAL);
+	}
+	return 0;
+}
+
 static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i, j, nvic = 0, vic, k = 0;
 	struct fb_videomode *mode;
-	uint32_t fmasks[5] = { FB_MODE_IS_FIRST, ~(FB_MODE_IS_DETAILED | FB_MODE_IS_FIRST), FB_MODE_IS_DETAILED, ~0, 0 };
+	uint32_t fmasks[5] = { FB_MODE_IS_FIRST, FB_MODE_IS_DETAILED, ~(FB_MODE_IS_DETAILED | FB_MODE_IS_FIRST), ~0, 0 };
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
@@ -2200,10 +2215,7 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 		if (fmasks[k] != ~0 && !(mode->flag & fmasks[k]))
 			continue;
 
-		if ((vic = mxc_edid_mode_to_vic(mode, 0)))
-			nvic++;
-
-		if (!mode->xres || !mode->refresh)
+		if (mode->flag & FB_MODE_IS_DETAILED && mode->vmode & FB_VMODE_INTERLACED)
 			continue;
 
 		if (!(mode->vmode & FB_VMODE_ASPECT_MASK)) {
@@ -2213,18 +2225,21 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 				mode->vmode |= FB_VMODE_ASPECT_16_9;
 		}
 
-		mode->xres = ALIGN2(mode->xres, 8);
-		mode->yres = ALIGN2(mode->yres, 8);
+		if (mode->refresh == 59)
+			mode->refresh = 60;
 
-		if (mxc_fb_check_existing(mode, &hdmi->fbi->modelist) || fb_add_videomode(mode, &hdmi->fbi->modelist))
+		if ((vic = mxc_edid_mode_to_vic(mode, 0)) && (mode->flag == FB_MODE_IS_STANDARD))
+			nvic++;
+
+		if (!mode->xres || !mode->refresh)
 			continue;
 
-		mxc_hdmi_log_modelist(hdmi, mode);
+		mode->xres = ALIGN2(mode->xres, 8);
+		mode->yres = ALIGN2(mode->yres, 8);
+		if (!mxc_fb_check_existing(mode, &hdmi->fbi->modelist) && !fb_add_videomode(mode, &hdmi->fbi->modelist))
+			mxc_hdmi_log_modelist(hdmi, mode);
 
-		if (vic && hdmi->hdmi_data.enable_fract && (mode->refresh == 24 || mode->refresh == 30 || mode->refresh == 60))
-			mxc_fb_add_videomode(hdmi, mode, &hdmi->fbi->modelist, mode->flag, FB_VMODE_FRACTIONAL);
-
-		if (!hdmi->hdmi_data.enable_3d || !hdmi->edid_cfg.hdmi_3d_present)
+		if (!hdmi->hdmi_data.enable_3d || !hdmi->edid_cfg.hdmi_3d_present || mode->flag != FB_MODE_IS_STANDARD)
 			continue;
 
 		/* according to HDMI 1.4 specs, add mandatory modes for 50 and 60Hz existing 2d modes */
@@ -2263,6 +2278,9 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	    }
 	    k++;
 	}
+
+	if (hdmi->hdmi_data.enable_fract)
+		mxc_fb_add_fractional(hdmi, &hdmi->fbi->modelist);
 
 	fb_new_modelist(hdmi->fbi);
 
