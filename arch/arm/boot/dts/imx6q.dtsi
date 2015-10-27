@@ -59,21 +59,21 @@
 			soc-supply = <&reg_soc>;
 		};
 
-		cpu@1 {
+		cpu1: cpu@1 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <1>;
 			next-level-cache = <&L2>;
 		};
 
-		cpu@2 {
+		cpu2: cpu@2 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <2>;
 			next-level-cache = <&L2>;
 		};
 
-		cpu@3 {
+		cpu3: cpu@3 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <3>;
@@ -82,6 +82,9 @@
 	};
 
 	soc {
+		pmu {
+			interrupt-affinity = <&cpu0>, <&cpu1>, <&cpu2>, <&cpu3>;
+		};
 
 		busfreq { /* BUSFREQ */
 			compatible = "fsl,imx6_busfreq";
