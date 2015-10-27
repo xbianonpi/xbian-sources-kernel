@@ -21,7 +21,7 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu@0 {
+		cpu0: cpu@0 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <0>;
@@ -54,7 +54,7 @@
 			soc-supply = <&reg_soc>;
 		};
 
-		cpu@1 {
+		cpu1: cpu@1 {
 			compatible = "arm,cortex-a9";
 			device_type = "cpu";
 			reg = <1>;
@@ -63,6 +63,10 @@
 	};
 
 	soc {
+		pmu {
+			interrupt-affinity = <&cpu0>, <&cpu1>;
+		};
+
 		busfreq { /* BUSFREQ */
 			compatible = "fsl,imx6_busfreq";
 			clocks = <&clks IMX6QDL_CLK_PLL2_BUS>, <&clks IMX6QDL_CLK_PLL2_PFD2_396M>,
