@@ -527,7 +527,7 @@ static int sd_set_bus_speed_mode(struct mmc_card *card, u8 *status)
 		 * delay to get stable, without this delay we may encounter
 		 * CRC errors after switch to DDR50 mode
 		 */
-		mmc_delay(100);
+		mmc_delay(150);
 	}
 
 	return 0;
