@@ -272,6 +272,8 @@ static int caam_probe(struct platform_device *pdev)
 	ctrlpriv->pdev = pdev;
 	nprop = pdev->dev.of_node;
 
+	spin_lock_init(&ctrlpriv->jr_alloc_lock);
+
 	/* Get configuration properties from device tree */
 	/* First, get register page */
 	ctrl = of_iomap(nprop, 0);
