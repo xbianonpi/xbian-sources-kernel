@@ -715,6 +715,7 @@ static int hdmi_cec_dev_probe(struct platform_device *pdev)
 		goto err_out_chrdev;
 	}
 	spin_lock_init(&hdmi_cec_root.i_lock);
+	spin_lock_init(&hdmi_cec_root.buffer_lock);
 
 	err = devm_request_irq(&pdev->dev, irq, mxc_hdmi_cec_isr, IRQF_SHARED,
 			dev_name(&pdev->dev), &hdmi_cec_root);
