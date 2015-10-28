@@ -2710,7 +2710,7 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		}
 	}
 
-	if (hdmi->blank != FB_BLANK_UNBLANK)
+	if (hdmi->blank != FB_BLANK_UNBLANK && hdmi->dft_mode_set)
 		return;
 
 	hdmi_disable_overflow_interrupts();
