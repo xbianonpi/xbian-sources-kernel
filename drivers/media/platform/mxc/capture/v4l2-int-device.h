@@ -3,6 +3,7 @@
  *
  * V4L2 internal ioctl interface.
  *
+ * Copyright 2005-2014 Freescale Semiconductor, Inc.
  * Copyright (C) 2007 Nokia Corporation.
  *
  * Contact: Sakari Ailus <sakari.ailus@nokia.com>
@@ -302,7 +303,7 @@ V4L2_INT_WRAPPER_1(send_command, struct v4l2_send_command_control, *);
 
 V4L2_INT_WRAPPER_0(dev_init);
 V4L2_INT_WRAPPER_0(dev_exit);
-V4L2_INT_WRAPPER_1(s_power, enum v4l2_power, );
+V4L2_INT_WRAPPER_1(s_power, enum v4l2_power, /*dummy arg*/);
 V4L2_INT_WRAPPER_1(g_priv, void, *);
 V4L2_INT_WRAPPER_1(g_ifparm, struct v4l2_ifparm, *);
 V4L2_INT_WRAPPER_1(g_needs_reset, void, *);

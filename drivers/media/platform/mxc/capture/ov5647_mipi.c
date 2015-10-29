@@ -33,7 +33,6 @@
 #include <linux/fsl_devices.h>
 #include <linux/mipi_csi2.h>
 #include <media/v4l2-chip-ident.h>
-#include <media/v4l2-int-device.h>
 #include "mxc_v4l2_capture.h"
 
 #define OV5647_VOLTAGE_ANALOG               2800000
