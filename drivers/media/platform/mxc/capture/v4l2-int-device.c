@@ -3,6 +3,7 @@
  *
  * V4L2 internal ioctl interface.
  *
+ * Copyright 2005-2014 Freescale Semiconductor, Inc.
  * Copyright (C) 2007 Nokia Corporation.
  *
  * Contact: Sakari Ailus <sakari.ailus@nokia.com>
@@ -28,7 +29,7 @@
 #include <linux/string.h>
 #include <linux/module.h>
 
-#include <media/v4l2-int-device.h>
+#include "v4l2-int-device.h"
 
 static DEFINE_MUTEX(mutex);
 static LIST_HEAD(int_list);
