@@ -449,7 +449,7 @@ static int caam_probe(struct platform_device *pdev)
 	nprop = pdev->dev.of_node;
 
 	/* Enable clocking */
-	clk = caam_drv_identify_clk(&pdev->dev, "ipg");
+	clk = caam_drv_identify_clk(&pdev->dev, "caam_ipg");
 	if (IS_ERR(clk)) {
 		ret = PTR_ERR(clk);
 		dev_err(&pdev->dev,
@@ -458,7 +458,7 @@ static int caam_probe(struct platform_device *pdev)
 	}
 	ctrlpriv->caam_ipg = clk;
 
-	clk = caam_drv_identify_clk(&pdev->dev, "mem");
+	clk = caam_drv_identify_clk(&pdev->dev, "caam_mem");
 	if (IS_ERR(clk)) {
 		ret = PTR_ERR(clk);
 		dev_err(&pdev->dev,
@@ -467,7 +467,7 @@ static int caam_probe(struct platform_device *pdev)
 	}
 	ctrlpriv->caam_mem = clk;
 
-	clk = caam_drv_identify_clk(&pdev->dev, "aclk");
+	clk = caam_drv_identify_clk(&pdev->dev, "caam_aclk");
 	if (IS_ERR(clk)) {
 		ret = PTR_ERR(clk);
 		dev_err(&pdev->dev,
@@ -477,7 +477,7 @@ static int caam_probe(struct platform_device *pdev)
 	ctrlpriv->caam_aclk = clk;
 
 	if (!of_machine_is_compatible("fsl,imx6ul")) {
-		clk = caam_drv_identify_clk(&pdev->dev, "emi_slow");
+		clk = caam_drv_identify_clk(&pdev->dev, "caam_emi_slow");
 		if (IS_ERR(clk)) {
 			ret = PTR_ERR(clk);
 			dev_err(&pdev->dev,
