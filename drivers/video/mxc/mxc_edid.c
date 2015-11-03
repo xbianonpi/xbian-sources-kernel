@@ -810,12 +810,14 @@ int mxc_edid_parse_raw(unsigned char *edid, struct mxc_edid_cfg *cfg, struct fb_
 			return -ENOENT;
 	}
 
-	while (extblknum-- > 1) {
+	extblknum = min(extblknum, 3);
+	while (extblknum > 1) {
 		/* edid ext block parsing */
 		ret = mxc_edid_parse_ext_blk(edid + extblknum*EDID_LENGTH,
 				cfg, &fbi->monspecs);
 		if (ret < 0)
 			return -ENOENT;
+		extblknum--;
 	}
 
 	return 0;
