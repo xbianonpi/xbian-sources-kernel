@@ -519,10 +519,6 @@
 	status = "okay";
 };
 
-&usdhc1 {
-	status = "disabled";
-};
-
 &usdhc2 {
 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
 	pinctrl-0 = <
