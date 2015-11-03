@@ -2384,7 +2384,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	fb_blank(hdmi->fbi, FB_BLANK_UNBLANK);
 	console_unlock();
 
-	if (new_screen)
+	if (edid_status != HDMI_EDID_SAME)
 		mxc_hdmi_notify_fb(hdmi, new_screen);
 
 #ifdef CONFIG_MXC_HDMI_CEC
