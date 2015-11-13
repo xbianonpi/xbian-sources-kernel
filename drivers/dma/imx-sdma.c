@@ -288,14 +288,6 @@ struct sdma_context_data {
 
 struct sdma_engine;
 
-enum sdma_mode {
-	SDMA_MODE_INVALID = 0,
-	SDMA_MODE_LOOP,
-	SDMA_MODE_NORMAL,
-	SDMA_MODE_P2P,
-	SDMA_MODE_NO_BD,
-};
-
 /**
  * struct sdma_channel - housekeeping for a SDMA channel
  *
@@ -328,7 +320,6 @@ struct sdma_channel {
 	unsigned int			device_to_device;
 	unsigned int                    pc_to_pc;
 	unsigned long			flags;
-	enum sdma_mode			mode;
 	dma_addr_t			per_address, per_address2;
 	unsigned long			event_mask[2];
 	unsigned long			watermark_level;
@@ -343,6 +334,8 @@ struct sdma_channel {
 	struct tasklet_struct		tasklet;
 	struct imx_dma_data		data;
 };
+
+#define IMX_DMA_SG_LOOP		BIT(0)
 
 #define MAX_DMA_CHANNELS 32
 #define MXC_SDMA_DEFAULT_PRIORITY 1
@@ -766,39 +759,22 @@ static void mxc_sdma_handle_channel_normal(struct sdma_channel *sdmac)
 		sdmac->desc.callback(sdmac->desc.callback_param);
 }
 
-static void sdma_handle_other_intr(struct sdma_channel *sdmac)
-{
-	if (sdmac->desc.callback)
-		sdmac->desc.callback(sdmac->desc.callback_param);
-}
-
 static void sdma_tasklet(unsigned long data)
 {
 	struct sdma_channel *sdmac = (struct sdma_channel *) data;
-	struct sdma_engine *sdma = sdmac->sdma;
 	unsigned long flags;
 
 	spin_lock_irqsave(&sdmac->lock, flags);
-	if (sdmac->status != DMA_IN_PROGRESS && sdmac->mode != SDMA_MODE_LOOP) {
+	if (sdmac->status != DMA_IN_PROGRESS && !(sdmac->flags & IMX_DMA_SG_LOOP)) {
 		spin_unlock_irqrestore(&sdmac->lock, flags);
 		return;
 	}
 	spin_unlock_irqrestore(&sdmac->lock, flags);
 
-	switch (sdmac->mode) {
-	case SDMA_MODE_LOOP:
+	if (sdmac->flags & IMX_DMA_SG_LOOP)
 		sdma_handle_channel_loop(sdmac);
-		break;
-	case SDMA_MODE_NORMAL:
+	else
 		mxc_sdma_handle_channel_normal(sdmac);
-		break;
-	case SDMA_MODE_NO_BD:
-		sdma_handle_other_intr(sdmac);
-		break;
-	default:
-		dev_err(sdma->dev, "invalid SDMA MODE!\n");
-		break;
-	}
 }
 
 static irqreturn_t sdma_int_handler(int irq, void *dev_id)
@@ -815,12 +791,12 @@ static irqreturn_t sdma_int_handler(int irq, void *dev_id)
 		int channel = fls(stat) - 1;
 		struct sdma_channel *sdmac = &sdma->channel[channel];
 
-		if ((sdmac->flags & SDMA_MODE_LOOP) &&
+		if ((sdmac->flags & IMX_DMA_SG_LOOP) &&
 			(sdmac->peripheral_type != IMX_DMATYPE_HDMI))
 			sdma_update_channel_loop(sdmac);
 
 		spin_lock_irqsave(&sdmac->lock, flags);
-		if (sdmac->status == DMA_IN_PROGRESS || sdmac->mode == SDMA_MODE_LOOP)
+		if (sdmac->status == DMA_IN_PROGRESS || (sdmac->flags & IMX_DMA_SG_LOOP))
 			tasklet_schedule(&sdmac->tasklet);
 		spin_unlock_irqrestore(&sdmac->lock, flags);
 
@@ -1284,9 +1260,6 @@ static int sdma_alloc_chan_resources(struct dma_chan *chan)
 	/* txd.flags will be overwritten in prep funcs */
 	sdmac->desc.flags = DMA_CTRL_ACK;
 
-	/* Set SDMA channel mode to unvalid to avoid misconfig */
-	sdmac->mode = SDMA_MODE_INVALID;
-
 	return 0;
 
 disable_clk_ahb:
@@ -1567,24 +1540,8 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	sdmac->buf_tail = 0;
 	sdmac->period_len = period_len;
 
+	sdmac->flags |= IMX_DMA_SG_LOOP;
 	sdmac->direction = direction;
-
-	switch (sdmac->direction) {
-	case DMA_DEV_TO_DEV:
-		sdmac->mode = SDMA_MODE_P2P;
-		break;
-	case DMA_TRANS_NONE:
-		sdmac->mode = SDMA_MODE_NO_BD;
-		break;
-	case DMA_MEM_TO_DEV:
-	case DMA_DEV_TO_MEM:
-		sdmac->mode = SDMA_MODE_LOOP;
-		break;
-	default:
-		dev_err(sdma->dev, "invalid SDMA direction %d\n", direction);
-		return NULL;
-	}
-
 	ret = sdma_load_context(sdmac);
 	if (ret)
 		goto err_out;
@@ -1695,7 +1652,7 @@ static enum dma_status sdma_tx_status(struct dma_chan *chan,
 	 * For uart rx data may not receive fully, use old chn_real_count to
 	 * know the real rx count.
 	 */
-	if ((sdmac->flags & SDMA_MODE_LOOP) &&
+	if ((sdmac->flags & IMX_DMA_SG_LOOP) &&
 		(sdmac->peripheral_type != IMX_DMATYPE_UART))
 		residue = (sdmac->num_bd - sdmac->buf_tail) * sdmac->period_len;
 	else
