@@ -440,6 +440,7 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
 					   sizeof(struct vpu_mem_desc));
 			if (ret) {
+				vpu_free_dma_buffer(&(rec->mem));
 				kfree(rec);
 				ret = -EFAULT;
 				break;
