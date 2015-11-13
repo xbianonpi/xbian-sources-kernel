@@ -1033,11 +1033,6 @@ static int sdma_config_channel(struct dma_chan *chan)
 			return -EINVAL;
 		sdma_event_enable(sdmac, sdmac->event_id0);
 	}
-	if (sdmac->event_id1) {
-		if (sdmac->event_id1 >= sdmac->sdma->drvdata->num_events)
-			return -EINVAL;
-		sdma_event_enable(sdmac, sdmac->event_id1);
-	}
 
 	if (sdmac->event_id1) {
 		if (sdmac->event_id1 >= sdmac->sdma->drvdata->num_events)
@@ -1631,16 +1626,7 @@ static int sdma_config(struct dma_chan *chan,
 {
 	struct sdma_channel *sdmac = to_sdma_chan(chan);
 
-	if (dmaengine_cfg->direction == DMA_DEV_TO_DEV) {
-		sdmac->per_address = dmaengine_cfg->src_addr;
-		sdmac->per_address2 = dmaengine_cfg->dst_addr;
-		sdmac->watermark_level = 0;
-		sdmac->watermark_level |=
-		dmaengine_cfg->src_maxburst;
-		sdmac->watermark_level |=
-			dmaengine_cfg->dst_maxburst << 16;
-		sdmac->word_size = dmaengine_cfg->dst_addr_width;
-	} else if (dmaengine_cfg->direction == DMA_DEV_TO_MEM) {
+	if (dmaengine_cfg->direction == DMA_DEV_TO_MEM) {
 		sdmac->per_address = dmaengine_cfg->src_addr;
 		sdmac->watermark_level = dmaengine_cfg->src_maxburst *
 			dmaengine_cfg->src_addr_width;
