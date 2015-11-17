@@ -467,6 +467,10 @@ static int fsl_hdmi_soc_startup(struct snd_pcm_substream *substream,
 	struct imx_hdmi *hdmi_data = snd_soc_dai_get_drvdata(dai);
 	int ret;
 
+	ret = fsl_hdmi_update_constraints(substream);
+	if (ret < 0)
+		return ret;
+
 	clk_prepare_enable(hdmi_data->mipi_core_clk);
 	clk_prepare_enable(hdmi_data->isfr_clk);
 	clk_prepare_enable(hdmi_data->iahb_clk);
@@ -475,10 +479,6 @@ static int fsl_hdmi_soc_startup(struct snd_pcm_substream *substream,
 			(int)clk_get_rate(hdmi_data->mipi_core_clk),
 			(int)clk_get_rate(hdmi_data->isfr_clk),
 			(int)clk_get_rate(hdmi_data->iahb_clk));
-
-	ret = fsl_hdmi_update_constraints(substream);
-	if (ret < 0)
-		return ret;
 
 	/* Indicates the subpacket represents a flatline sample */
 	hdmi_audio_writeb(FC_AUDSCONF, AUD_PACKET_SAMPFIT, 0x0);
@@ -558,6 +558,9 @@ static int fsl_hdmi_iec_put(struct snd_kcontrol *kcontrol,
 static int fsl_hdmi_channels_info(struct snd_kcontrol *kcontrol,
 			     struct snd_ctl_elem_info *uinfo)
 {
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_channels();
+
 	uinfo->type  = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = playback_constraint_channels.count;
 
@@ -569,6 +572,8 @@ static int fsl_hdmi_channels_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *uvalue)
 {
 	int i;
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_channels();
 
 	for (i = 0 ; i < playback_constraint_channels.count ; i++)
 		uvalue->value.integer.value[i] = playback_channels[i];
@@ -579,6 +584,9 @@ static int fsl_hdmi_channels_get(struct snd_kcontrol *kcontrol,
 static int fsl_hdmi_rates_info(struct snd_kcontrol *kcontrol,
 			     struct snd_ctl_elem_info *uinfo)
 {
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_rates();
+
 	uinfo->type  = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = playback_constraint_rates.count;
 
@@ -589,6 +597,8 @@ static int fsl_hdmi_rates_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *uvalue)
 {
 	int i;
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_rates();
 
 	for (i = 0 ; i < playback_constraint_rates.count ; i++)
 		uvalue->value.integer.value[i] = playback_rates[i];
@@ -599,6 +609,9 @@ static int fsl_hdmi_rates_get(struct snd_kcontrol *kcontrol,
 static int fsl_hdmi_formats_info(struct snd_kcontrol *kcontrol,
 			     struct snd_ctl_elem_info *uinfo)
 {
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_sample_size();
+
 	uinfo->type  = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = playback_constraint_bits.count;
 
@@ -609,6 +622,8 @@ static int fsl_hdmi_formats_get(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *uvalue)
 {
 	int i;
+	hdmi_get_edid_cfg(&edid_cfg);
+	fsl_hdmi_get_playback_sample_size();
 
 	for (i = 0 ; i < playback_constraint_bits.count ; i++)
 		uvalue->value.integer.value[i] = playback_sample_size[i];
