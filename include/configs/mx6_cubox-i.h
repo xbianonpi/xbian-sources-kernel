@@ -142,6 +142,8 @@
 #define CONFIG_CONSOLE_MUX
 #endif
 
+#define CONFIG_IMX_WATCHDOG
+
 /* USB Configs */
 #define CONFIG_CMD_USB
 #ifdef CONFIG_CMD_USB
