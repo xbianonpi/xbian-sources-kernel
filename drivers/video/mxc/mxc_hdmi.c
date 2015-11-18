@@ -2353,6 +2353,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		if (mode) {
 			fb_videomode_to_var(&var, mode);
 			var.vmode &= (FB_VMODE_ASPECT_MASK | FB_VMODE_MASK_SIMPLE);
+			new_screen = true;
 		} else
 			dev_err(&hdmi->pdev->dev, "No fb_find_best_display returned\n");
 	}
@@ -2378,7 +2379,6 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 			memcpy(&hdmi->fbi->var.xres_virtual, &hdmi->prev_virtual, sizeof(hdmi->prev_virtual));
 	} else {
 		dev_dbg(&hdmi->pdev->dev, "%s: New video mode\n", __func__);
-		new_screen = true;
 	}
 
 	hdmi_set_cable_state(1);
