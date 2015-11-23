@@ -1899,7 +1899,7 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	return mxc_edid_parse_raw(hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
 }
 
-static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
+static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi, bool retry)
 {
 	int ret;
 	u8 edid_old[HDMI_EDID_LEN];
@@ -1950,8 +1950,11 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 
 	}
 
-	if (ret < 0)
+	if (ret < 0) {
+		if (!retry)
+			memcpy(hdmi->edid, edid_old, HDMI_EDID_LEN);
 		return HDMI_EDID_FAIL;
+	}
 
 	if (!memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
 		dev_info(&hdmi->pdev->dev, "same edid\n");
@@ -2407,19 +2410,14 @@ static void mxc_hdmi_cable_connected_edid(struct mxc_hdmi *hdmi)
 	if (ignore_edid)
 		edid_status = HDMI_EDID_FAIL;
 	else
-		edid_status = mxc_hdmi_read_edid(hdmi);
+		edid_status = mxc_hdmi_read_edid(hdmi, false);
 
 	/* Read EDID again if first EDID read failed */
 	if (!ignore_edid && (edid_status == HDMI_EDID_NO_MODES ||
 			edid_status == HDMI_EDID_FAIL)) {
-		int retry_status;
 		dev_info(&hdmi->pdev->dev, "Read EDID again\n");
 		msleep(200);
-		retry_status = mxc_hdmi_read_edid(hdmi);
-		/* If we get NO_MODES on the 1st and SAME on the 2nd attempt we
-		 * want NO_MODES as final result. */
-		if (retry_status != HDMI_EDID_SAME)
-			edid_status = retry_status;
+		edid_status = mxc_hdmi_read_edid(hdmi, true);
 	}
 
 	/* HDMI Initialization Steps D, E, F */
