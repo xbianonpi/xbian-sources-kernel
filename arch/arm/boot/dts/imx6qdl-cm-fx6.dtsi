@@ -192,7 +192,7 @@
 	};
 
 	restart_poweroff {
-		compatible = "fsl,snvs-poweroff";
+		compatible = "fsl,snvs-poweroff", "syscon-poweroff";
 	};
 };
 
