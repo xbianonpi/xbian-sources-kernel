@@ -173,7 +173,7 @@ static int cpu_is_mx6q(void)
 static void vpu_reset(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-	device_reset(vpu_dev);
+	device_reset_optional(vpu_dev);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	imx_src_reset_vpu();
 #else
@@ -440,6 +440,7 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
 					   sizeof(struct vpu_mem_desc));
 			if (ret) {
+				vpu_free_dma_buffer(&(rec->mem));
 				kfree(rec);
 				ret = -EFAULT;
 				break;

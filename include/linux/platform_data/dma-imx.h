@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2009 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2004-2014 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -17,30 +17,32 @@
  * This enumerates peripheral types. Used for SDMA.
  */
 enum sdma_peripheral_type {
-        IMX_DMATYPE_SSI,        /* MCU domain SSI */
-        IMX_DMATYPE_SSI_SP,     /* Shared SSI */
-        IMX_DMATYPE_MMC,        /* MMC */
-        IMX_DMATYPE_SDHC,       /* SDHC */
-        IMX_DMATYPE_UART,       /* MCU domain UART */
-        IMX_DMATYPE_UART_SP,    /* Shared UART */
-        IMX_DMATYPE_FIRI,       /* FIRI */
-        IMX_DMATYPE_CSPI,       /* MCU domain CSPI */
-        IMX_DMATYPE_CSPI_SP,    /* Shared CSPI */
-        IMX_DMATYPE_SIM,        /* SIM */
-        IMX_DMATYPE_ATA,        /* ATA */
-        IMX_DMATYPE_CCM,        /* CCM */
-        IMX_DMATYPE_EXT,        /* External peripheral */
-        IMX_DMATYPE_MSHC,       /* Memory Stick Host Controller */
-        IMX_DMATYPE_MSHC_SP,    /* Shared Memory Stick Host Controller */
-        IMX_DMATYPE_DSP,        /* DSP */
-        IMX_DMATYPE_MEMORY,     /* Memory */
-        IMX_DMATYPE_FIFO_MEMORY,/* FIFO type Memory */
-        IMX_DMATYPE_SPDIF,      /* SPDIF */
-        IMX_DMATYPE_IPU_MEMORY, /* IPU Memory */
-        IMX_DMATYPE_ASRC,       /* ASRC */
-        IMX_DMATYPE_ESAI,       /* ESAI */
-        IMX_DMATYPE_SSI_DUAL,   /* SSI Dual FIFO */
-        IMX_DMATYPE_HDMI,       /* HDMI Audio */
+	IMX_DMATYPE_SSI,	/* MCU domain SSI */
+	IMX_DMATYPE_SSI_SP,	/* Shared SSI */
+	IMX_DMATYPE_MMC,	/* MMC */
+	IMX_DMATYPE_SDHC,	/* SDHC */
+	IMX_DMATYPE_UART,	/* MCU domain UART */
+	IMX_DMATYPE_UART_SP,	/* Shared UART */
+	IMX_DMATYPE_FIRI,	/* FIRI */
+	IMX_DMATYPE_CSPI,	/* MCU domain CSPI */
+	IMX_DMATYPE_CSPI_SP,	/* Shared CSPI */
+	IMX_DMATYPE_SIM,	/* SIM */
+	IMX_DMATYPE_ATA,	/* ATA */
+	IMX_DMATYPE_CCM,	/* CCM */
+	IMX_DMATYPE_EXT,	/* External peripheral */
+	IMX_DMATYPE_MSHC,	/* Memory Stick Host Controller */
+	IMX_DMATYPE_MSHC_SP,	/* Shared Memory Stick Host Controller */
+	IMX_DMATYPE_DSP,	/* DSP */
+	IMX_DMATYPE_MEMORY,	/* Memory */
+	IMX_DMATYPE_FIFO_MEMORY,/* FIFO type Memory */
+	IMX_DMATYPE_SPDIF,	/* SPDIF */
+	IMX_DMATYPE_IPU_MEMORY,	/* IPU Memory */
+	IMX_DMATYPE_ASRC,	/* ASRC */
+	IMX_DMATYPE_ESAI,	/* ESAI */
+	IMX_DMATYPE_SSI_DUAL,	/* SSI Dual FIFO */
+	IMX_DMATYPE_ASRC_SP,	/* Shared ASRC */
+	IMX_DMATYPE_HDMI,	/* HDMI Audio */
+	IMX_DMATYPE_SAI,        /* SAI Audio */
 };
 
 enum imx_dma_prio {

@@ -1920,7 +1920,7 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 		int edid_cfg_keep = (void*)&hdmi->edid_cfg.CONFIGKEEP - (void*)&hdmi->edid_cfg;
 
 		memcpy(&edid_cfg_old, &hdmi->edid_cfg, edid_cfg_keep);
-		memcpy(hdmi->edid, hdmi->edid_from_fw->data, min(HDMI_EDID_LEN, hdmi->edid_from_fw->size));
+		memcpy(hdmi->edid, hdmi->edid_from_fw->data, min((int)HDMI_EDID_LEN, (int)hdmi->edid_from_fw->size));
 		release_firmware(hdmi->edid_from_fw);
 		hdmi->edid_from_fw = NULL;
 
