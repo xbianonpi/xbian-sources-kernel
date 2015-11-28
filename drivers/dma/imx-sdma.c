@@ -1061,65 +1061,11 @@ static int sdma_config_channel(struct dma_chan *chan)
 			if (sdmac->peripheral_type == IMX_DMATYPE_ASRC_SP ||
 			    sdmac->peripheral_type == IMX_DMATYPE_ASRC)
 				sdma_set_watermarklevel_for_p2p(sdmac);
-
-			if (sdmac->event_id0 > 31) {
-				sdmac->event_mask[0] |= 0;
-				__set_bit(28, &sdmac->watermark_level);
-				sdmac->event_mask[1] |=
-						BIT(sdmac->event_id0 % 32);
-			} else {
-				sdmac->event_mask[1] |= 0;
-				sdmac->event_mask[0] |=
-						BIT(sdmac->event_id0 % 32);
-			}
-			if (sdmac->event_id1 > 31) {
-				sdmac->event_mask[0] |= 0;
-				__set_bit(29, &sdmac->watermark_level);
-				sdmac->event_mask[1] |=
-						BIT(sdmac->event_id1 % 32);
-			} else {
-				sdmac->event_mask[1] |= 0;
-				sdmac->event_mask[0] |=
-						BIT(sdmac->event_id1 % 32);
-			}
-			/* BIT 11:
-			 * 1 : Source on SPBA
-			 * 0 : Source on AIPS
-			 */
-			__set_bit(11, &sdmac->watermark_level);
-			/* BIT 12:
-			 * 1 : Destination on SPBA
-			 * 0 : Destination on AIPS
-			 */
-			__set_bit(12, &sdmac->watermark_level);
-			__set_bit(31, &sdmac->watermark_level);
-			/* BIT 31:
-			 * 1 : Amount of samples to be transferred is
-			 * unknown and script will keep on transferring
-			 * samples as long as both events are detected
-			 * and script must be manually stopped by the
-			 * application.
-			 * 0 : The amount of samples to be is equal to
-			 * the count field of mode word
-			 * */
-			__set_bit(25, &sdmac->watermark_level);
-			__clear_bit(24, &sdmac->watermark_level);
-		} else {
-			if (sdmac->event_id0 > 31) {
-				sdmac->event_mask[0] = 0;
-				sdmac->event_mask[1] |=
-						BIT(sdmac->event_id0 % 32);
-			} else {
-				sdmac->event_mask[0] |=
-						BIT(sdmac->event_id0 % 32);
-				sdmac->event_mask[1] = 0;
-			}
-		}
-		/* Watermark Level */
-		sdmac->watermark_level |= sdmac->watermark_level;
 		} else
 			__set_bit(sdmac->event_id0, sdmac->event_mask);
 
+		/* Watermark Level */
+		sdmac->watermark_level |= sdmac->watermark_level;
 		/* Address */
 		if (sdmac->direction == DMA_DEV_TO_DEV ||
 			 (sdmac->peripheral_type == IMX_DMATYPE_HDMI)) {
