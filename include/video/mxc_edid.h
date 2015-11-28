@@ -104,8 +104,25 @@ struct mxc_edid_cfg {
 	u8 hdmi_eld[MAX_ELD_BYTES];
 };
 
-static inline unsigned long mxcPICOS2KHZ(u32 pixclock, u32 vmode) {
-	u32 x = (1000000000UL / (pixclock) * 1000 / ((vmode & FB_VMODE_FRACTIONAL) ? 1001 : 1000));
+static inline bool try_ntsc(const struct fb_videomode *mode)
+{
+	if (!mode)
+		return false;
+
+	switch (mode->refresh) {
+	case 24:
+	case 30:
+	case 60:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static inline unsigned long mxcPICOS2KHZ(u32 pixclock, struct fb_info *fbi) {
+	bool ntsc = fbi && (fbi->flags & FBINFO_TIMING_NTSC) && try_ntsc(fbi->mode);
+
+	u32 x = (1000000000UL / (pixclock) * 1000 / (ntsc ? 1001 : 1000));
 	return x + ((1000000000UL % x) > (x / 2) ? 1 : 0);
 }
 

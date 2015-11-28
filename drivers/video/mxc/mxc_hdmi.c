@@ -282,20 +282,21 @@ static inline int cpu_is_imx6dl(struct mxc_hdmi *hdmi)
 	return hdmi->cpu_type == IMX6DL_HDMI;
 }
 
-static inline void get_refresh_str(struct fb_videomode *m, char *refresh)
+static inline void get_refresh_str(struct fb_videomode *m, char *refresh, bool ntsc_mode)
 {
-	snprintf(refresh, 10, "%u.%uHz", m->refresh - (int)(m->vmode & FB_VMODE_FRACTIONAL ? 1 : 0),
-				m->refresh * (int)(m->vmode & FB_VMODE_FRACTIONAL ? 999 : 1000) % 1000);
+	snprintf(refresh, 10, "%u.%uHz", m->refresh - (int)ntsc_mode,
+				m->refresh * (int)(ntsc_mode ? 999 : 1000) % 1000);
 }
 
-static void dump_fb_videomode(struct fb_videomode *m)
+static void dump_fb_videomode(struct fb_videomode *m, struct mxc_hdmi *hdmi)
 {
 	char refresh[10];
+	bool ntsc = hdmi->fbi && (hdmi->fbi->flags & FBINFO_TIMING_NTSC) && try_ntsc(hdmi->fbi->mode);
 
-	get_refresh_str(m, refresh);
+	get_refresh_str(m, refresh, ntsc);
 	pr_debug("fb_videomode = %ux%u%c-%s (%ups/%lukHz) %u %u %u %u %u %u %u %u %u\n",
 		m->xres, m->yres, m->vmode & FB_VMODE_INTERLACED ? 'i' : 'p',
-		refresh, m->pixclock, mxcPICOS2KHZ(m->pixclock, m->vmode), m->left_margin,
+		refresh, m->pixclock, mxcPICOS2KHZ(m->pixclock, hdmi->fbi), m->left_margin,
 		m->right_margin, m->upper_margin, m->lower_margin,
 		m->hsync_len, m->vsync_len, m->sync, m->vmode, m->flag);
 }
@@ -1745,7 +1746,7 @@ static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 	vmode->mHSyncPolarity = ((fb_mode.sync & FB_SYNC_HOR_HIGH_ACT) != 0);
 	vmode->mVSyncPolarity = ((fb_mode.sync & FB_SYNC_VERT_HIGH_ACT) != 0);
 	vmode->mInterlaced = ((fb_mode.vmode & FB_VMODE_INTERLACED) != 0);
-	vmode->mPixelClock = (u32) (mxcPICOS2KHZ(fb_mode.pixclock, fb_mode.vmode) * 1000UL);
+	vmode->mPixelClock = (u32) (mxcPICOS2KHZ(fb_mode.pixclock, fbi) * 1000UL);
 
 	dev_dbg(&hdmi->pdev->dev, "final pixclk = %d\n", vmode->mPixelClock);
 
@@ -1762,7 +1763,7 @@ static void hdmi_av_composer(struct mxc_hdmi *hdmi)
 		HDMI_FC_INVIDCONF_DE_IN_POLARITY_ACTIVE_HIGH :
 		HDMI_FC_INVIDCONF_DE_IN_POLARITY_ACTIVE_LOW);
 
-	if (fb_mode.vmode & FB_VMODE_FRACTIONAL)
+	if (fbi->flags & FBINFO_TIMING_NTSC)
 		inv_val |= HDMI_FC_INVIDCONF_R_V_BLANK_IN_OSC_ACTIVE_HIGH;
 	else
 		inv_val |= (vmode->mInterlaced ?
@@ -2112,7 +2113,7 @@ static void mxc_hdmi_log_modelist(struct mxc_hdmi *hdmi, struct fb_videomode *mo
 {
 	char refresh[10];
 
-	get_refresh_str(mode, refresh);
+	get_refresh_str(mode, refresh, false);
 	dev_info(&hdmi->pdev->dev,
 		"vic: %d, xres = %d, yres = %d, ratio = %s, freq = %s, vmode = %d, flag = %d, pclk = %d\n",
 		mxc_edid_mode_to_vic(mode, 0),
@@ -2175,21 +2176,6 @@ static int mxc_fb_check_existing(struct fb_videomode *match, struct list_head *h
 		mode = &modelist->mode;
 		if (mxc_fb_mode_is_equal_res(match, mode))
 			return 1;
-	}
-	return 0;
-}
-
-static int mxc_fb_add_fractional(struct mxc_hdmi *hdmi, struct list_head *head)
-{
-	struct list_head *pos;
-	struct fb_modelist *modelist;
-	struct fb_videomode *mode;
-
-	list_for_each(pos, head) {
-		modelist = list_entry(pos, struct fb_modelist, list);
-		mode = &modelist->mode;
-		if (mxc_edid_mode_to_vic(mode, 0) && (mode->refresh == 24 || mode->refresh == 30 || mode->refresh == 60))
-			mxc_fb_add_videomode(hdmi, mode, &hdmi->fbi->modelist, mode->flag, FB_VMODE_FRACTIONAL);
 	}
 	return 0;
 }
@@ -2283,9 +2269,6 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 	    k++;
 	}
 
-	if (hdmi->hdmi_data.enable_fract)
-		mxc_fb_add_fractional(hdmi, &hdmi->fbi->modelist);
-
 	fb_new_modelist(hdmi->fbi);
 
 	console_unlock();
@@ -2362,7 +2345,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	}
 
 	fb_var_to_videomode(&m, &var);
-	dump_fb_videomode(&m);
+	dump_fb_videomode(&m, hdmi);
 	mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist, false);
 
 	if (mode) {
@@ -2493,7 +2476,7 @@ static int mxc_hdmi_power_on(struct mxc_dispdrv_handle *disp,
 	struct mxc_hdmi *hdmi = mxc_dispdrv_getdata(disp);
 
 	mxc_hdmi_phy_init(hdmi);
-	hdmi_clk_regenerator_update_pixel_clock(hdmi->fbi->var.pixclock, hdmi->fbi->var.vmode);
+	hdmi_clk_regenerator_update_pixel_clock(hdmi->fbi->var.pixclock, hdmi->fbi);
 	return 0;
 }
 
@@ -2704,7 +2687,7 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 		if (!list_empty(&hdmi->fbi->modelist)) {
 			edid_mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist, false);
 			pr_debug("edid mode vx:%d vy:%d", hdmi->fbi->var.xres_virtual, hdmi->fbi->var.yres_virtual);
-			dump_fb_videomode((struct fb_videomode *)edid_mode);
+			dump_fb_videomode((struct fb_videomode *)edid_mode, hdmi);
 			/* update fbi mode */
 			hdmi->fbi->mode = (struct fb_videomode *)edid_mode;
 			hdmi->vic = mxc_edid_mode_to_vic(edid_mode, 0);
@@ -3173,7 +3156,7 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	memcpy(&hdmi->default_mode, mode, sizeof(struct fb_videomode));
 
 	hdmi->default_mode.vmode |= mode->vmode;
-	dump_fb_videomode((struct fb_videomode *)mode);
+	dump_fb_videomode((struct fb_videomode *)mode, hdmi);
 	fb_videomode_to_var(&hdmi->fbi->var, mode);
 	memcpy(&hdmi->prev_virtual, &hdmi->fbi->var.xres_virtual, sizeof(hdmi->prev_virtual));
 
