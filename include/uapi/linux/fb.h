@@ -254,8 +254,7 @@ struct fb_bitfield {
 
 #define FB_VMODE_MASK		(FB_VMODE_MASK_SIMPLE | \
 				 FB_VMODE_3D_MASK     | \
-				 FB_VMODE_ASPECT_MASK | \
-				 FB_VMODE_FRACTIONAL)
+				 FB_VMODE_ASPECT_MASK)
 
 
 /*

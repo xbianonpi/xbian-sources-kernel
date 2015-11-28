@@ -20,7 +20,6 @@
 #include <linux/fb.h>
 #include <linux/console.h>
 #include <linux/module.h>
-#include <linux/ctype.h>
 
 #define FB_SYSFS_FLAG_ATTR 1
 
@@ -127,8 +126,6 @@ static int mode_string(char *buf, unsigned int offset,
 	if (mode->vmode & FB_VMODE_3D_FRAME_PACK)
 		m = 'F';
 
-	if (mode->vmode & FB_VMODE_FRACTIONAL)
-		m = tolower(m);
 	return snprintf(&buf[offset], PAGE_SIZE - offset, "%c:%dx%d%c-%d\n",
 	                m, mode->xres, mode->yres, v, mode->refresh);
 }
@@ -335,6 +332,33 @@ static ssize_t show_blank(struct device *device,
 	return 0;
 }
 
+static ssize_t store_ntsc(struct device *device,
+			     struct device_attribute *attr,
+			     const char *buf, size_t count)
+{
+	struct fb_info *fb_info = dev_get_drvdata(device);
+	char *last = NULL;
+	int ntsc_mode = simple_strtoul(buf, &last, 0);
+
+	if (ntsc_mode)
+		fb_info->flags |= FBINFO_TIMING_NTSC;
+	else
+		fb_info->flags &= ~FBINFO_TIMING_NTSC;
+
+	return count;
+}
+
+static ssize_t show_ntsc(struct device *device,
+			    struct device_attribute *attr, char *buf)
+{
+	struct fb_info *fb_info = dev_get_drvdata(device);
+
+	if (fb_info->flags & FBINFO_TIMING_NTSC)
+		return snprintf(buf, PAGE_SIZE, "ntsc timings active\n");
+
+	return snprintf(buf, PAGE_SIZE, "ntsc timings disabled\n");
+}
+
 static ssize_t store_console(struct device *device,
 			     struct device_attribute *attr,
 			     const char *buf, size_t count)
@@ -511,6 +535,7 @@ static struct device_attribute device_attrs[] = {
 	__ATTR(console, S_IRUGO|S_IWUSR, show_console, store_console),
 	__ATTR(cursor, S_IRUGO|S_IWUSR, show_cursor, store_cursor),
 	__ATTR(mode, S_IRUGO|S_IWUSR, show_mode, store_mode),
+	__ATTR(ntsc_mode, S_IRUGO|S_IWUSR, show_ntsc, store_ntsc),
 	__ATTR(modes, S_IRUGO|S_IWUSR, show_modes, store_modes),
 	__ATTR(pan, S_IRUGO|S_IWUSR, show_pan, store_pan),
 	__ATTR(virtual_size, S_IRUGO|S_IWUSR, show_virtual, store_virtual),
