@@ -645,10 +645,10 @@ static int mxcfb_set_par(struct fb_info *fbi)
 			sig_cfg.clkidle_en = true;
 
 		dev_dbg(fbi->device, "pixclock = %u Hz\n",
-			(u32) (mxcPICOS2KHZ(fbi->var.pixclock, fbi->var.vmode) * 1000UL));
+			(u32) (mxcPICOS2KHZ(fbi->var.pixclock, fbi) * 1000UL));
 
 		if (ipu_init_sync_panel(mxc_fbi->ipu, mxc_fbi->ipu_di,
-					(mxcPICOS2KHZ(fbi->var.pixclock, fbi->var.vmode)) * 1000UL,
+					(mxcPICOS2KHZ(fbi->var.pixclock, fbi)) * 1000UL,
 					fbi->var.xres, fbi->var.yres,
 					out_pixel_fmt,
 					fbi->var.left_margin,
