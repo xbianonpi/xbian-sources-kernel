@@ -524,11 +524,11 @@ void hdmi_init_clk_regenerator(void)
 }
 EXPORT_SYMBOL(hdmi_init_clk_regenerator);
 
-void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, u32 vmode)
+void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi)
 {
 
 	/* Translate pixel clock in ps (pico seconds) to Hz  */
-	pixel_clk_rate = mxcPICOS2KHZ(pixclock, vmode) * 1000UL;
+	pixel_clk_rate = mxcPICOS2KHZ(pixclock, fbi) * 1000UL;
 	hdmi_set_clk_regenerator();
 }
 EXPORT_SYMBOL(hdmi_clk_regenerator_update_pixel_clock);
