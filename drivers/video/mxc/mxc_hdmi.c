@@ -1900,16 +1900,14 @@ static int mxc_edid_read_internal(struct mxc_hdmi *hdmi, unsigned char *edid,
 	return mxc_edid_parse_raw(hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
 }
 
-static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi, bool retry)
+static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 {
 	int ret;
-	u8 edid_old[HDMI_EDID_LEN];
 	u8 clkdis;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	/* save old edid */
-	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
 	memset(hdmi->edid, 0, HDMI_EDID_LEN);
 
 	/*
@@ -1951,16 +1949,8 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi, bool retry)
 
 	}
 
-	if (ret < 0) {
-		if (!retry)
-			memcpy(hdmi->edid, edid_old, HDMI_EDID_LEN);
+	if (ret < 0)
 		return HDMI_EDID_FAIL;
-	}
-
-	if (!memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
-		dev_info(&hdmi->pdev->dev, "same edid\n");
-		return HDMI_EDID_SAME;
-	}
 
 	if (hdmi->fbi->monspecs.modedb_len == 0) {
 		dev_info(&hdmi->pdev->dev, "No modes read from edid\n");
@@ -2385,22 +2375,29 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 static void mxc_hdmi_cable_connected_edid(struct mxc_hdmi *hdmi)
 {
 	int edid_status;
+	u8 edid_old[HDMI_EDID_LEN];
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
+	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
 
 	mutex_lock(&hdmi->m_lock);
 	/* HDMI Initialization Step C */
 	if (ignore_edid)
 		edid_status = HDMI_EDID_FAIL;
 	else
-		edid_status = mxc_hdmi_read_edid(hdmi, false);
+		edid_status = mxc_hdmi_read_edid(hdmi);
 
 	/* Read EDID again if first EDID read failed */
 	if (!ignore_edid && (edid_status == HDMI_EDID_NO_MODES ||
 			edid_status == HDMI_EDID_FAIL)) {
 		dev_info(&hdmi->pdev->dev, "Read EDID again\n");
 		msleep(200);
-		edid_status = mxc_hdmi_read_edid(hdmi, true);
+		edid_status = mxc_hdmi_read_edid(hdmi);
+	}
+
+	if (!memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
+		dev_info(&hdmi->pdev->dev, "same edid\n");
+		edid_status = HDMI_EDID_SAME;
 	}
 
 	/* HDMI Initialization Steps D, E, F */
