@@ -83,14 +83,8 @@ static spinlock_t hdmi_audio_lock, hdmi_blank_state_lock, hdmi_cable_state_lock;
 
 void hdmi_set_dvi_mode(unsigned int state)
 {
-	if (state) {
+	if (state)
 		mxc_hdmi_abort_stream();
-#ifdef CONFIG_MXC_HDMI_CEC
-		hdmi_cec_stop_device();
-	} else {
-		hdmi_cec_start_device();
-#endif
-	}
 }
 EXPORT_SYMBOL(hdmi_set_dvi_mode);
 

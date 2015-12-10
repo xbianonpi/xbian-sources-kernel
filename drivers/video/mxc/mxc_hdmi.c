@@ -2261,7 +2261,9 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	const struct fb_videomode *mode;
 	struct fb_videomode m;
 	struct fb_var_screeninfo var;
+#if defined(CONFIG_MXC_HDMI_CEC)
 	u32 l;
+#endif
 	bool new_screen = false;
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
@@ -2319,9 +2321,11 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	if (edid_status != HDMI_EDID_SAME)
 		mxc_hdmi_notify_fb(hdmi, new_screen);
 
-#ifdef CONFIG_MXC_HDMI_CEC
+#if defined(CONFIG_MXC_HDMI_CEC)
 	memcpy(&l, &hdmi->edid_cfg.physical_address, 4 *sizeof(u8));
 	mxc_hdmi_cec_handle(l);
+#elif defined(CONFIG_MXC_HDMI_CEC_SR)
+	mxc_hdmi_cec_handle(0x80);
 #endif
 }
 
@@ -2502,8 +2506,10 @@ static void hotplug_worker(struct work_struct *work)
 
 			sprintf(event_string, "EVENT=plugout");
 			kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
-#ifdef CONFIG_MXC_HDMI_CEC
+#if defined(CONFIG_MXC_HDMI_CEC)
 			mxc_hdmi_cec_handle(0x0);
+#elif defined(CONFIG_MXC_HDMI_CEC_SR)
+			mxc_hdmi_cec_handle(0x100);
 #endif
 		}
 
