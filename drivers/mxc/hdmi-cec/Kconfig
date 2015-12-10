@@ -2,9 +2,17 @@
 menu "MXC HDMI CEC (Consumer Electronics Control) support"
 
 config MXC_HDMI_CEC
-	tristate "Support for MXC HDMI CEC (Consumer Electronics Control)"
+	tristate "Support for MXC HDMI CEC (Customised driver, SR driver available if deselected)"
 	depends on MFD_MXC_HDMI
 	depends on FB_MXC_HDMI || DRM_IMX_HDMI
+	help
+	  The HDMI CEC device implement low level protocol on i.MX6x platforms.
+
+config MXC_HDMI_CEC_SR
+	tristate "Support for MXC HDMI CEC (Upstream tree SR driver)"
+	depends on MFD_MXC_HDMI
+	depends on FB_MXC_HDMI
+	depends on MXC_HDMI_CEC=n
 	help
 	  The HDMI CEC device implement low level protocol on i.MX6x platforms.
 
