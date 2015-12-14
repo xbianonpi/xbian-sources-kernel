@@ -1306,6 +1306,9 @@ static int sdhci_esdhc_imx_probe(struct platform_device *pdev)
 		writel(0x0, host->ioaddr + ESDHC_MIX_CTRL);
 		writel(0x0, host->ioaddr + SDHCI_ACMD12_ERR);
 		writel(0x0, host->ioaddr + ESDHC_TUNE_CTRL_STATUS);
+
+		/* disable DLL_CTRL delay line settings */
+		writel(0x0, host->ioaddr + ESDHC_DLL_CTRL);
 	}
 
 	if (imx_data->socdata->flags & ESDHC_FLAG_MAN_TUNING)
