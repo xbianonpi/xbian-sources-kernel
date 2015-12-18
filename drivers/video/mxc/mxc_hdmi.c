@@ -2473,16 +2473,15 @@ static void hotplug_worker(struct work_struct *work)
 {
 	struct mxc_hdmi *hdmi =
 		container_of(work, struct mxc_hdmi, hotplug_work);
-	u32 hdmi_phy_stat0, hdmi_phy_pol0, hdmi_phy_mask0;
+	u32 hdmi_phy_pol0, hdmi_phy_mask0;
 	unsigned long flags;
 	char event_string[32];
 	char *envp[] = { event_string, NULL };
 
-	hdmi_phy_stat0 = hdmi_readb(HDMI_PHY_STAT0);
 	hdmi_phy_pol0 = hdmi_readb(HDMI_PHY_POL0);
 
-	dev_dbg(&hdmi->pdev->dev, "phy_int_stat=0x%x/0x%x, phy_int_pol=0x%x, plug_event=0x%x, plug_mask=0x%x\n",
-			hdmi_phy_stat0, hdmi->latest_intr_stat, hdmi_phy_pol0, hdmi->plug_event, hdmi->plug_mask);
+		dev_dbg(&hdmi->pdev->dev, "phy_int_stat=0x%x, phy_int_pol=0x%x, plug_event=0x%x, plug_mask=0x%x\n",
+			hdmi->latest_intr_stat, hdmi_phy_pol0, hdmi->plug_event, hdmi->plug_mask);
 
 		/* Make HPD intr active low to capture unplug event or
 		 * active high to capture plugin event */
