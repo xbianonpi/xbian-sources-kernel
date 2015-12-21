@@ -2334,10 +2334,10 @@ static void mxc_hdmi_cable_connected_edid(struct mxc_hdmi *hdmi)
 	int edid_status;
 	u8 edid_old[HDMI_EDID_LEN];
 
+	mutex_lock(&hdmi->m_lock);
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
 
-	mutex_lock(&hdmi->m_lock);
 	/* HDMI Initialization Step C */
 	if (ignore_edid)
 		edid_status = HDMI_EDID_FAIL;
