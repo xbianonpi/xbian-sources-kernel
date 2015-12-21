@@ -159,4 +159,5 @@
 	no-1-8-v;
 	vmmc-supply = <&reg_brcm>;
 	status = "okay";
+	voltage-ranges = <3300 3300>;
 };
