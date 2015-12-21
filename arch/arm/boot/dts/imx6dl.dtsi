@@ -244,8 +244,8 @@
 	compatible = "fsl,imx6dl-gpt";
 };
 
-&hdmi {
-	compatible = "fsl,imx6dl-hdmi";
+&hdmi_video {
+	compatible = "fsl,imx6dl-hdmi-video";
 };
 
 &ldb {

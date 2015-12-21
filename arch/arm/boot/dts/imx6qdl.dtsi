@@ -244,6 +244,8 @@
 		hdmi_core: hdmi_core@00120000 {
 			compatible = "fsl,imx6q-hdmi-core";
 			reg = <0x00120000 0x9000>;
+			interrupts = <0 115 0x04>;
+			gpr = <&gpr>;
 			clocks = <&clks IMX6QDL_CLK_HDMI_ISFR>,
 					<&clks IMX6QDL_CLK_HDMI_IAHB>,
 					<&clks IMX6QDL_CLK_HSI_TX>;
@@ -909,18 +911,6 @@
 					reg = <1>;
 					status = "disabled";
 				};
-			};
-
-			hdmi: hdmi@0120000 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <0x00120000 0x9000>;
-				interrupts = <0 115 0x04>;
-				gpr = <&gpr>;
-				clocks = <&clks IMX6QDL_CLK_HDMI_IAHB>,
-					 <&clks IMX6QDL_CLK_HDMI_ISFR>;
-				clock-names = "iahb", "isfr";
-				status = "disabled";
 			};
 
 			dcic1: dcic@020e4000 {
