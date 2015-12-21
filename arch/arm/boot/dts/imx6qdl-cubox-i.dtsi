@@ -314,6 +314,7 @@
 	cd-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
 	status = "okay";
 	no-1-8-v;
+	voltage-ranges = <3300 3300>;
 };
 
 &dcic1 {
