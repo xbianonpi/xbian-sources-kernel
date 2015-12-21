@@ -640,7 +640,6 @@ static int hdmi_cec_release(struct inode *inode, struct file *filp)
 	hdmi_cec_set_address(-1, hdmi_cec);
 	if (!--open_count)
 		hdmi_cec_hwdisable();
-	wake_up(&hdmi_cec_buf);
 
 	while (!list_empty(&hdmi_cec->msg_head)) {
 		struct hdmi_cec_event_list *event = NULL;
@@ -658,8 +657,11 @@ static int hdmi_cec_release(struct inode *inode, struct file *filp)
 			kfree(client);
 		}
 	}
-
 	mutex_unlock(&hdmi_cec_root.m_lock);
+
+	if (open_count)
+		wake_up(&hdmi_cec_buf);
+
 	return 0;
 }
 
