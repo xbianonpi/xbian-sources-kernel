@@ -550,6 +550,7 @@
 	vmmc-supply = <&reg_usdhc2_vbus>;
 	cd-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
 	status = "okay";
+	voltage-ranges = <3300 3300>;
 };
 
 &ecspi2 {
