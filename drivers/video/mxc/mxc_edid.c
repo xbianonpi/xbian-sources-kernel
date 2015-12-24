@@ -900,7 +900,7 @@ const struct fb_videomode *mxc_fb_find_nearest_mode(const struct fb_videomode *m
 		}
 	}
 
-	if ((!relax && (diff_refresh || diff)) || !best)
+	if (!relax && (diff_refresh || diff || !best))
 		mxc_fb_find_nearest_mode(mode, head, true);
 
 	return best;
