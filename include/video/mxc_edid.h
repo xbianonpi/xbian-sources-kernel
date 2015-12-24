@@ -121,9 +121,7 @@ static inline bool try_ntsc(const struct fb_videomode *mode)
 
 static inline unsigned long mxcPICOS2KHZ(u32 pixclock, struct fb_info *fbi) {
 	bool ntsc = fbi && (fbi->flags & FBINFO_TIMING_NTSC) && try_ntsc(fbi->mode);
-
-	u32 x = (1000000000UL / (pixclock) * 1000 / (ntsc ? 1001 : 1000));
-	return x + ((1000000000UL % x) > (x / 2) ? 1 : 0);
+	return (((ntsc ? (999000999UL*4) : (1000000000UL*4)) / pixclock) + 1) >> 2;
 }
 
 int mxc_edid_var_to_vic(struct fb_var_screeninfo *var);
