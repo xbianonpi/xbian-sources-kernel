@@ -2077,6 +2077,8 @@ static void mxc_fb_add_videomode(struct mxc_hdmi *hdmi, const struct fb_videomod
 {
 	struct fb_videomode mode;
 
+	if (mod_vmode & (FB_VMODE_3D_SBS_FULL | FB_VMODE_3D_FRAME_PACK))
+		return;
 	memcpy(&mode, src_mode, sizeof(struct fb_videomode));
 	mode.flag = new_flag; mode.vmode |= mod_vmode;
 	if (fb_add_videomode(&mode, modelist))
