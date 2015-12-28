@@ -2,6 +2,7 @@
 
 libphy-objs			:= phy.o phy_device.o mdio_bus.o mdio_device.o
 
+obj-$(CONFIG_SWPHY)		+= swphy.o
 obj-$(CONFIG_PHYLIB)		+= libphy.o
 obj-$(CONFIG_AQUANTIA_PHY)	+= aquantia.o
 obj-$(CONFIG_MARVELL_PHY)	+= marvell.o
