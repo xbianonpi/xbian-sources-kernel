@@ -24,18 +24,8 @@ enum bus_freq_mode {
 	BUS_FREQ_AUDIO,
 	BUS_FREQ_LOW,
 };
-inline void request_bus_freq(enum bus_freq_mode mode)
-{
-}
-inline void release_bus_freq(enum bus_freq_mode mode)
-{
-}
-inline int register_busfreq_notifier(struct notifier_block *nb)
-{
-	return 0;
-}
-inline int unregister_busfreq_notifier(struct notifier_block *nb)
-{
-	return 0;
-}
+void request_bus_freq(enum bus_freq_mode mode);
+void release_bus_freq(enum bus_freq_mode mode);
+int register_busfreq_notifier(struct notifier_block *nb);
+int unregister_busfreq_notifier(struct notifier_block *nb);
 #endif
