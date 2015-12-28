@@ -112,7 +112,7 @@ static int mode_string(char *buf, unsigned int offset,
 		m = 'D';
 	if (mode->flag & FB_MODE_IS_VESA)
 		m = 'V';
-	if (mode->flag & FB_MODE_IS_STANDARD)
+	if (mode->flag == FB_MODE_IS_STANDARD)
 		m = 'S';
 
 	if (mode->vmode & FB_VMODE_INTERLACED)
