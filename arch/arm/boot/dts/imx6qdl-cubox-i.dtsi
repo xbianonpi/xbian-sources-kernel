@@ -44,10 +44,6 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
-	chosen {
-		bootargs = "quiet console=ttymxc0,115200 root=/dev/mmcblk0p2 rw";
-	};
-
 	aliases {
 		mmc0 = &usdhc2;
 		mmc1 = &usdhc1;
@@ -196,6 +192,10 @@
 		compatible = "nxp,pcf8523";
 		reg = <0x68>;
 	};
+};
+
+&ocram {
+	status = "okay";
 };
 
 &iomuxc {
