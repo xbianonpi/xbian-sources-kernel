@@ -75,7 +75,7 @@ static const char *cko2_sels[] = {
 	"ipu2", "vdo_axi", "osc", "gpu2d_core",
 	"gpu3d_core", "usdhc2", "ssi1", "ssi2",
 	"ssi3", "gpu3d_shader", "vpu_axi", "can_root",
-	"ldb_di0", "ldb_di1", "esai_extal", "eim_slow",
+	"ldb_di0", "ldb_di1", "esai_extal", "caam_eim_slow",
 	"uart_serial", "spdif", "asrc", "hsi_tx",
 };
 static const char *cko_sels[] = { "cko1", "cko2", };
@@ -825,7 +825,7 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 	clk[IMX6QDL_CLK_USDHC2]       = imx_clk_gate2("usdhc2",        "usdhc2_podf",       base + 0x80, 4);
 	clk[IMX6QDL_CLK_USDHC3]       = imx_clk_gate2("usdhc3",        "usdhc3_podf",       base + 0x80, 6);
 	clk[IMX6QDL_CLK_USDHC4]       = imx_clk_gate2("usdhc4",        "usdhc4_podf",       base + 0x80, 8);
-	clk[IMX6QDL_CLK_EIM_SLOW]     = imx_clk_gate2("eim_slow",      "eim_slow_podf",     base + 0x80, 10);
+	clk[IMX6QDL_CLK_EIM_SLOW]     = imx_clk_gate2("caam_eim_slow",      "eim_slow_podf",     base + 0x80, 10);
 	clk[IMX6QDL_CLK_VDO_AXI]      = imx_clk_gate2("vdo_axi",       "vdo_axi_sel",       base + 0x80, 12);
 	clk[IMX6QDL_CLK_VPU_AXI]      = imx_clk_gate2("vpu_axi",       "vpu_axi_podf",      base + 0x80, 14);
 	if (clk_on_imx6qp()) {

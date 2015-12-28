@@ -500,11 +500,11 @@ static int caam_probe(struct platform_device *pdev)
 	ctrlpriv->caam_aclk = clk;
 
 	if (!of_machine_is_compatible("fsl,imx6ul")) {
-		clk = caam_drv_identify_clk(&pdev->dev, "caam_emi_slow");
+		clk = caam_drv_identify_clk(&pdev->dev, "caam_eim_slow");
 		if (IS_ERR(clk)) {
 			ret = PTR_ERR(clk);
 			dev_err(&pdev->dev,
-				"can't identify CAAM emi_slow clk: %d\n", ret);
+				"can't identify CAAM eim_slow clk: %d\n", ret);
 			return ret;
 		}
 		ctrlpriv->caam_emi_slow = clk;
