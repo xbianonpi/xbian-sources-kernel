@@ -1179,6 +1179,7 @@
 			ocotp: ocotp-ctrl@021bc000 {
 				compatible = "syscon";
 				reg = <0x021bc000 0x4000>;
+				clocks = <&clks IMX6QDL_CLK_IIM>;
 			};
 
 			ocotp-fuse@021bc000 {
@@ -1227,7 +1228,7 @@
 				compatible = "fsl,imx6q-vdoa";
 				reg = <0x021e4000 0x4000>;
 				interrupts = <0 18 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&clks 202>;
+				clocks = <&clks IMX6QDL_CLK_VDOA>;
 				iram = <&ocram>;
 			};
 
