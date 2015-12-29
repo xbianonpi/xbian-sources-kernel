@@ -13,6 +13,7 @@
 
 #include <common.h>
 #include <asm/errno.h>
+#include <asm/global_data.h>
 #include <linux/string.h>
 #include <linux/list.h>
 #include <linux/fb.h>
@@ -24,6 +25,8 @@
 #include "mxcfb.h"
 #include "ipu_regs.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 static int mxcfb_map_video_memory(struct fb_info *fbi);
 static int mxcfb_unmap_video_memory(struct fb_info *fbi);
 
@@ -33,7 +36,7 @@ static struct fb_videomode const *gmode;
 static uint8_t gdisp;
 static uint32_t gpixfmt;
 
-void fb_videomode_to_var(struct fb_var_screeninfo *var,
+static void fb_videomode_to_var(struct fb_var_screeninfo *var,
 			 const struct fb_videomode *mode)
 {
 	var->xres = mode->xres;
@@ -414,6 +417,8 @@ static int mxcfb_map_video_memory(struct fb_info *fbi)
 
 	fbi->screen_size = fbi->fix.smem_len;
 
+	gd->fb_base = fbi->fix.smem_start;
+
 	/* Clear the screen */
 	memset((char *)fbi->screen_base, 0, fbi->fix.smem_len);
 
@@ -592,15 +597,6 @@ void *video_hw_init(void)
 	debug("Framebuffer at 0x%x\n", (unsigned int)panel.frameAdrs);
 
 	return (void *)&panel;
-}
-
-void video_set_lut(unsigned int index, /* color number */
-			unsigned char r,    /* red */
-			unsigned char g,    /* green */
-			unsigned char b     /* blue */
-			)
-{
-	return;
 }
 
 int ipuv3_fb_init(struct fb_videomode const *mode,

@@ -176,5 +176,9 @@ void arch_preboot_os(void)
 {
 	/* disable video before launching O/S */
 	ipuv3_fb_shutdown();
+
+	struct mxc_ccm_reg *ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+	setbits_le32(&ccm->analog_pll_video, BM_ANADIG_PLL_VIDEO_POWERDOWN);
+
 }
 #endif
