@@ -669,5 +669,5 @@ MODULE_AUTHOR("Frodo Looijaard <frodol@dds.nl> and "
 MODULE_DESCRIPTION("I2C /dev entries driver");
 MODULE_LICENSE("GPL");
 
-module_init(i2c_dev_init);
+postcore_initcall(i2c_dev_init);
 module_exit(i2c_dev_exit);

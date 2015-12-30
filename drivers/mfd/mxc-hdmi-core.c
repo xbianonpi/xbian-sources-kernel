@@ -764,7 +764,7 @@ static void __exit mxc_hdmi_core_exit(void)
 	platform_driver_unregister(&mxc_hdmi_core_driver);
 }
 
-subsys_initcall(mxc_hdmi_core_init);
+arch_initcall(mxc_hdmi_core_init);
 module_exit(mxc_hdmi_core_exit);
 
 MODULE_DESCRIPTION("Core driver for Freescale i.Mx on-chip HDMI");

@@ -1249,7 +1249,7 @@ static int __init i2c_adap_imx_init(void)
 {
 	return platform_driver_register(&i2c_imx_driver);
 }
-subsys_initcall(i2c_adap_imx_init);
+postcore_initcall(i2c_adap_imx_init);
 
 static void __exit i2c_adap_imx_exit(void)
 {
