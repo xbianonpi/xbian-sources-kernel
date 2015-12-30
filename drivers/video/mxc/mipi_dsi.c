@@ -981,7 +981,7 @@ static void __exit mipi_dsi_cleanup(void)
 	platform_driver_unregister(&mipi_dsi_driver);
 }
 
-module_init(mipi_dsi_init);
+arch_initcall(mipi_dsi_init);
 module_exit(mipi_dsi_cleanup);
 
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");
