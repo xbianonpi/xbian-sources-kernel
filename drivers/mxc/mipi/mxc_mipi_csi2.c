@@ -457,7 +457,7 @@ static void __exit mipi_csi2_cleanup(void)
 	platform_driver_unregister(&mipi_csi2_driver);
 }
 
-subsys_initcall(mipi_csi2_init);
+arch_initcall(mipi_csi2_init);
 module_exit(mipi_csi2_cleanup);
 
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");
