@@ -3434,7 +3434,7 @@ static int __init mxc_hdmi_init(void)
 {
 	return platform_driver_register(&mxc_hdmi_driver);
 }
-module_init(mxc_hdmi_init);
+arch_initcall(mxc_hdmi_init);
 
 static void __exit mxc_hdmi_exit(void)
 {
@@ -3498,7 +3498,7 @@ static void __exit mxc_hdmi_i2c_exit(void)
 	i2c_del_driver(&mxc_hdmi_i2c_driver);
 }
 
-subsys_initcall(mxc_hdmi_i2c_init);
+arch_initcall(mxc_hdmi_i2c_init);
 module_exit(mxc_hdmi_i2c_exit);
 
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");

@@ -2631,7 +2631,7 @@ void mxcfb_exit(void)
 	platform_driver_unregister(&mxcfb_driver);
 }
 
-module_init(mxcfb_init);
+subsys_initcall(mxcfb_init);
 module_exit(mxcfb_exit);
 
 MODULE_AUTHOR("Freescale Semiconductor, Inc.");

@@ -3179,7 +3179,7 @@ int32_t __init ipu_gen_init(void)
 	return 0;
 }
 
-subsys_initcall(ipu_gen_init);
+postcore_initcall(ipu_gen_init);
 
 static void __exit ipu_gen_uninit(void)
 {
