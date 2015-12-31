@@ -2246,7 +2246,8 @@ static void  mxc_hdmi_default_modelist(struct mxc_hdmi *hdmi)
 		if (mode.xres != 0) {
 			if (ignore_edid)
 				mode.flag |= FB_MODE_IS_STANDARD;
-			fb_add_videomode(&mode, &hdmi->fbi->modelist);
+			if (!fb_add_videomode(&mode, &hdmi->fbi->modelist))
+				mxc_hdmi_log_modelist(hdmi, &mode);
 		}
 	}
 
