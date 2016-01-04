@@ -2340,6 +2340,23 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask, u32 *mask)
 		else
 			host->cmd->error = -EILSEQ;
 
+		/*
+		 * If this command initiates a data phase and a response
+		 * CRC error is signalled, the card can start transferring
+		 * data - the card may have received the command without
+		 * error.  We must not terminate the request early.
+		 *
+		 * If the card did not receive the command, the data phase
+		 * will time out.
+		 *
+		 * FIXME: we also need to clean up the data phase if any
+		 * command fails, not just the data initiating command.
+		 */
+		if (host->cmd->data && intmask & SDHCI_INT_CRC) {
+			host->cmd = NULL;
+			return;
+		}
+
 		tasklet_schedule(&host->finish_tasklet);
 		return;
 	}
