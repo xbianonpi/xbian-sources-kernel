@@ -30,6 +30,10 @@
 #define BFQ_DEFAULT_GRP_IOPRIO	0
 #define BFQ_DEFAULT_GRP_CLASS	IOPRIO_CLASS_BE
 
+#ifndef __GFP_WAIT
+#define __GFP_WAIT __GFP_RECLAIM
+#endif
+
 struct bfq_entity;
 
 /**
