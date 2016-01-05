@@ -43,7 +43,7 @@ const struct fb_videomode mxc_cea_mode[64] = {
 	/* #1: 640x480p@59.94/60Hz 4:3 */
 	[1] = {
 		NULL, 60, 640, 480, 39682, 48, 16, 33, 10, 96, 2, 0,
-		FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
+		FB_VMODE_DOUBLE | FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, 0,
 	},
 	/* #2: 720x480p@59.94/60Hz 4:3 */
 	[2] = {
@@ -199,8 +199,8 @@ int mxc_fb_mode_is_equal_res(const struct fb_videomode *mode1,
 	return (mode1->xres         == mode2->xres &&
 		mode1->yres         == mode2->yres &&
 		mode1->refresh      == mode2->refresh &&
-		(mode1->vmode & FB_VMODE_MASK) ==
-		(mode2->vmode & FB_VMODE_MASK));
+		(mode1->vmode & (FB_VMODE_MASK & ~FB_VMODE_DOUBLE)) ==
+		(mode2->vmode & (FB_VMODE_MASK & ~FB_VMODE_DOUBLE)));
 }
 EXPORT_SYMBOL(mxc_fb_mode_is_equal_res);
 
