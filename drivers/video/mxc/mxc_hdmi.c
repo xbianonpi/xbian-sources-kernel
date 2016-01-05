@@ -96,16 +96,6 @@
  * These correspond to the flowchart.
  */
 
-/*
- * We are required to configure VGA mode before reading edid
- * in HDMI Initialization Step B
- */
-static const struct fb_videomode vga_mode = {
-	/* 640x480 @ 60 Hz, 31.5 kHz hsync */
-	NULL, 60, 640, 480, 39721, 48, 16, 33, 10, 96, 2, 0,
-	FB_VMODE_NONINTERLACED | FB_VMODE_ASPECT_4_3, FB_MODE_IS_VESA,
-};
-
 enum hdmi_datamap {
 	RGB444_8B = 0x01,
 	RGB444_10B = 0x03,
@@ -2129,14 +2119,14 @@ static void mxc_hdmi_edid_rebuild_modelist(struct mxc_hdmi *hdmi)
 {
 	int i, j, nvic = 0, vic, k = 0;
 	struct fb_videomode *mode;
-	uint32_t fmasks[5] = { FB_MODE_IS_FIRST, FB_MODE_IS_DETAILED, ~(FB_MODE_IS_DETAILED | FB_MODE_IS_FIRST), ~0, 0 };
+	uint32_t fmasks[6] = { FB_MODE_IS_FIRST, FB_MODE_IS_DETAILED, FB_MODE_IS_STANDARD, ~(FB_MODE_IS_DETAILED | FB_MODE_IS_FIRST), ~0, 0 };
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
 
 	console_lock();
 
 	fb_destroy_modelist(&hdmi->fbi->modelist);
-	fb_add_videomode(&vga_mode, &hdmi->fbi->modelist);
+	fb_add_videomode(&mxc_cea_mode[1], &hdmi->fbi->modelist);
 
 	while (fmasks[k]) {
 	    for (i = 0; i < hdmi->fbi->monspecs.modedb_len; i++) {
