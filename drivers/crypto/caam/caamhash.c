@@ -1854,28 +1854,6 @@ struct caam_hash_template {
 /* ahash descriptors */
 static struct caam_hash_template driver_hash[] = {
 	{
-		.name = "md5",
-		.driver_name = "md5-caam",
-		.hmac_name = "hmac(md5)",
-		.hmac_driver_name = "hmac-md5-caam",
-		.blocksize = MD5_BLOCK_WORDS * 4,
-		.template_ahash = {
-			.init = ahash_init,
-			.update = ahash_update,
-			.final = ahash_final,
-			.finup = ahash_finup,
-			.digest = ahash_digest,
-			.export = ahash_export,
-			.import = ahash_import,
-			.setkey = ahash_setkey,
-			.halg = {
-				.digestsize = MD5_DIGEST_SIZE,
-				.statesize = sizeof(struct caam_export_state),
-			},
-		},
-		.alg_type = OP_ALG_ALGSEL_MD5,
-		.alg_op = OP_ALG_ALGSEL_MD5 | OP_ALG_AAI_HMAC,
-	}, {
 		.name = "sha1",
 		.driver_name = "sha1-caam",
 		.hmac_name = "hmac(sha1)",
@@ -1985,6 +1963,28 @@ static struct caam_hash_template driver_hash[] = {
 		},
 		.alg_type = OP_ALG_ALGSEL_SHA512,
 		.alg_op = OP_ALG_ALGSEL_SHA512 | OP_ALG_AAI_HMAC,
+	}, {
+		.name = "md5",
+		.driver_name = "md5-caam",
+		.hmac_name = "hmac(md5)",
+		.hmac_driver_name = "hmac-md5-caam",
+		.blocksize = MD5_BLOCK_WORDS * 4,
+		.template_ahash = {
+			.init = ahash_init,
+			.update = ahash_update,
+			.final = ahash_final,
+			.finup = ahash_finup,
+			.digest = ahash_digest,
+			.export = ahash_export,
+			.import = ahash_import,
+			.setkey = ahash_setkey,
+			.halg = {
+				.digestsize = MD5_DIGEST_SIZE,
+				.statesize = sizeof(struct caam_export_state),
+			},
+		},
+		.alg_type = OP_ALG_ALGSEL_MD5,
+		.alg_op = OP_ALG_ALGSEL_MD5 | OP_ALG_AAI_HMAC,
 	}, {
 		.name = "xcbc(aes)",
 		.driver_name = "xcbc-aes-caam",
