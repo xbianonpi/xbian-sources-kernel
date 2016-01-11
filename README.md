@@ -6,16 +6,16 @@ Linux Kernel sources in use by XBian
 
 Currently used kernel releases:
 
-    iMX6 - linux-4.1.y
-	https://github.com/xbianonpi/xbian-sources-kernel/tree/imx6-4.1.y
-	https://github.com/xbianonpi/xbian-sources-kernel/tree/uboot-imx6
+- RPI / RPI2 - **linux-4.1.y** <hr>
+    https://github.com/xbianonpi/xbian-sources-kernel/tree/rpi-4.1.y
 
-	(libCEC tree compatible with included kernel driver is at
-	https://github.com/xbianonpi/xbian-sources-libcec/tree/masterv3)
+- iMX6 - **linux-4.3.y** <hr>
+    https://github.com/xbianonpi/xbian-sources-kernel/tree/imx6-4.3.y <br>
+    https://github.com/xbianonpi/xbian-sources-kernel/tree/uboot-imx6
 
-    RPI / RPI2 - linux-4.1.y
-	https://github.com/xbianonpi/xbian-sources-kernel/tree/rpi-4.1.y
+- iMX6 - **linux-4.4.y** <hr>
+    https://github.com/xbianonpi/xbian-sources-kernel/tree/imx6-4.4.y <br>
+    (default configuration - imx_v7_cbi_hb_xbian_defconfig) <hr>
 
-    iMX6 - linux-4.3.y (experimental)
-	https://github.com/xbianonpi/xbian-sources-kernel/tree/imx6-4.3.y
-	(default configuration - imx_v7_cbi_hb_xbian_defconfig)
+    (libCEC tree compatible with CEC kernel driver is at
+    https://github.com/xbianonpi/xbian-sources-libcec/tree/masterv3)
