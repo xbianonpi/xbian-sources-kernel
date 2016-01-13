@@ -643,8 +643,8 @@ static int mmc_sd_init_uhs_card(struct mmc_card *card)
 	 * SDR104 mode SD-cards. Note that tuning is mandatory for SDR104.
 	 */
 	if (!mmc_host_is_spi(card->host) &&
-	    (card->sd_bus_speed == UHS_SDR50_BUS_SPEED ||
-	     card->sd_bus_speed == UHS_SDR104_BUS_SPEED))
+		(card->host->ios.timing == MMC_TIMING_UHS_SDR50 ||
+		 card->host->ios.timing == MMC_TIMING_UHS_SDR104))
 		err = mmc_execute_tuning(card);
 out:
 	kfree(status);
