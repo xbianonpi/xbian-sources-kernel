@@ -1700,5 +1700,5 @@ static void __exit firmware_class_exit(void)
 #endif
 }
 
-fs_initcall(firmware_class_init);
+postcore_initcall(firmware_class_init);
 module_exit(firmware_class_exit);
