@@ -1164,6 +1164,6 @@ static void __exit exit_cryptodev(void)
 	pr_info(PFX "driver unloaded.\n");
 }
 
-module_init(init_cryptodev);
+late_initcall(init_cryptodev);
 module_exit(exit_cryptodev);
 
