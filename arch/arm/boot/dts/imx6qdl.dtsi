@@ -1047,6 +1047,7 @@
 				clock-names = "ipg", "ahb", "ptp";
 				status = "okay";
 				local-mac-address = [FF FF FF FF FF FF];
+				fsl,magic-packet;
 			};
 
 			mlb: mlb@0218c000 {
