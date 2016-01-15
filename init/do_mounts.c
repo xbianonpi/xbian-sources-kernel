@@ -37,7 +37,7 @@
 
 int __initdata rd_doload;	/* 1 = load RAM disk, 0 = don't load */
 
-int root_mountflags = MS_RDONLY | MS_SILENT;
+int root_mountflags = MS_RDONLY | MS_SILENT | MS_NOATIME;
 static char * __initdata root_device_name;
 static char __initdata saved_root_name[64];
 static int root_wait;
