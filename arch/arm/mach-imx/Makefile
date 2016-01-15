@@ -93,7 +93,7 @@ obj-$(CONFIG_SOC_IMX50) += mach-imx50.o
 obj-$(CONFIG_SOC_IMX51) += mach-imx51.o
 obj-$(CONFIG_SOC_IMX53) += mach-imx53.o
 
-ifeq ($(CONFIG_ARM_IMX6Q_CPUFREQ),y)
+ifeq ($(CONFIG_SOC_IMX6),y)
 obj-y += busfreq-imx6.o
 endif
 
