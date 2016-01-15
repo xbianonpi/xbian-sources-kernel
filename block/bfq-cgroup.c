@@ -768,14 +768,14 @@ static struct cgroup_subsys_state *bfqio_create(struct cgroup_subsys_state
  * behavior is that a group containing a task that forked using CLONE_IO
  * will not be destroyed until the tasks sharing the ioc die.
  */
-static int bfqio_can_attach(struct cgroup_subsys_state *css,
-			    struct cgroup_taskset *tset)
+static int bfqio_can_attach(struct cgroup_taskset *tset)
 {
 	struct task_struct *task;
+	struct cgroup_subsys_state *css;
 	struct io_context *ioc;
 	int ret = 0;
 
-	cgroup_taskset_for_each(task, tset) {
+	cgroup_taskset_for_each(task, css, tset) {
 		/*
 		 * task_lock() is needed to avoid races with
 		 * exit_io_context()
@@ -799,10 +799,10 @@ static int bfqio_can_attach(struct cgroup_subsys_state *css,
 	return ret;
 }
 
-static void bfqio_attach(struct cgroup_subsys_state *css,
-			 struct cgroup_taskset *tset)
+static void bfqio_attach(struct cgroup_taskset *tset)
 {
 	struct task_struct *task;
+	struct cgroup_subsys_state *css;
 	struct io_context *ioc;
 	struct io_cq *icq;
 
@@ -810,7 +810,7 @@ static void bfqio_attach(struct cgroup_subsys_state *css,
 	 * IMPORTANT NOTE: The move of more than one process at a time to a
 	 * new group has not yet been tested.
 	 */
-	cgroup_taskset_for_each(task, tset) {
+	cgroup_taskset_for_each(task, css, tset) {
 		ioc = get_task_io_context(task, GFP_ATOMIC, NUMA_NO_NODE);
 		if (ioc) {
 			/*
