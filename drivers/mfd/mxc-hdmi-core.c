@@ -172,7 +172,7 @@ int mxc_hdmi_register_audio(struct snd_pcm_substream *substream)
 
 	snd_pcm_stream_lock_irqsave(substream, flags);
 
-	if (substream && hdmi_core_init) {
+	if (substream && hdmi_core_init && hdmi_cable_state) {
 		spin_lock_irqsave(&hdmi_audio_lock, flags1);
 		if (hdmi_audio_stream_playback) {
 			pr_err("%s unconsist hdmi auido stream!\n", __func__);
