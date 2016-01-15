@@ -1055,6 +1055,7 @@
 					 <&clks IMX6QDL_CLK_ENET_REF>;
 				clock-names = "ipg", "ahb", "ptp";
 				status = "okay";
+				fsl,magic-packet;
 			};
 
 			mlb: mlb@0218c000 {

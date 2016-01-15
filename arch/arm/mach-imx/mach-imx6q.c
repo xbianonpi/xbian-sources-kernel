@@ -34,11 +34,13 @@
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 #include <asm/system_misc.h>
+#include <linux/fec.h>
 
 #include "common.h"
 #include "cpuidle.h"
 #include "hardware.h"
 
+static struct fec_platform_data fec_pdata;
 static int ar803x_smarteee = 0;
 
 static int __init ar803x_smarteee_setup(char *__unused)
@@ -325,6 +327,38 @@ static void __init imx6q_axi_init(void)
 	}
 }
 
+/* Add auxdata to pass platform data */
+static const struct of_dev_auxdata imx6q_auxdata_lookup[] __initconst = {
+	OF_DEV_AUXDATA("fsl,imx6q-fec", 0x02188000, NULL, &fec_pdata),
+	{ /* sentinel */ }
+};
+
+static void imx6q_fec_sleep_enable(int enabled)
+{
+	struct regmap *gpr;
+
+	gpr = syscon_regmap_lookup_by_compatible("fsl,imx6q-iomuxc-gpr");
+	if (!IS_ERR(gpr)) {
+		if (enabled)
+			regmap_update_bits(gpr, IOMUXC_GPR13,
+					   IMX6Q_GPR13_ENET_STOP_REQ,
+					   IMX6Q_GPR13_ENET_STOP_REQ);
+		else
+			regmap_update_bits(gpr, IOMUXC_GPR13,
+					   IMX6Q_GPR13_ENET_STOP_REQ, 0);
+	} else
+		pr_err("failed to find fsl,imx6q-iomux-gpr regmap\n");
+}
+
+static void __init imx6q_enet_plt_init(void)
+{
+	struct device_node *np;
+
+	np = of_find_node_by_path("/soc/aips-bus@02100000/ethernet@02188000");
+	if (np && of_get_property(np, "fsl,magic-packet", NULL))
+		fec_pdata.sleep_mode_enable = imx6q_fec_sleep_enable;
+}
+
 static void __init imx6q_init_machine(void)
 {
 	struct device *parent;
@@ -342,14 +376,15 @@ static void __init imx6q_init_machine(void)
 	if (parent == NULL)
 		pr_warn("failed to initialize soc device\n");
 
-	imx6q_enet_phy_init();
+	of_platform_populate(NULL, of_default_bus_match_table, imx6q_auxdata_lookup, parent);
 
-	of_platform_default_populate(NULL, NULL, parent);
+	imx6q_enet_phy_init();
 
 	imx_anatop_init();
 	imx6q_csi_mux_init();
 	cpu_is_imx6q() ?  imx6q_pm_init() : imx6dl_pm_init();
 	imx6q_1588_init();
+	imx6q_enet_plt_init();
 	imx6q_axi_init();
 
 	p = ioremap(0x21b0000, SZ_4K);
