@@ -327,6 +327,10 @@ static int btrfs_ioctl_setflags(struct file *file, void __user *arg)
 
 		if (root->fs_info->compress_type == BTRFS_COMPRESS_LZO)
 			comp = "lzo";
+		else if (root->fs_info->compress_type == BTRFS_COMPRESS_LZ4)
+			comp = "lz4";
+		else if (root->fs_info->compress_type == BTRFS_COMPRESS_LZ4HC)
+			comp = "lz4hc";
 		else
 			comp = "zlib";
 		ret = btrfs_set_prop(inode, "btrfs.compression",
