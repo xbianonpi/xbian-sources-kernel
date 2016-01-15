@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 1999 ARM Limited
  * Copyright (C) 2000 Deep Blue Solutions Ltd
- * Copyright 2006-2007 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2006-2015 Freescale Semiconductor, Inc. All Rights Reserved.
  * Copyright 2008 Juergen Beisert, kernel@pengutronix.de
  * Copyright 2009 Ilya Yanok, Emcraft Systems Ltd, yanok@emcraft.com
  *
@@ -34,6 +34,7 @@
 
 static void __iomem *wdog_base;
 static struct clk *wdog_clk;
+static u32 wdog_source = 1; /* use WDOG1 default */
 
 /*
  * Reset the system. It is called by machine_restart().
@@ -42,17 +43,26 @@ void mxc_restart(enum reboot_mode mode, const char *cmd)
 {
 	unsigned int wcr_enable;
 
-	if (!wdog_base)
-		goto reset_fallback;
-
-	if (!IS_ERR(wdog_clk))
+	if (wdog_clk)
 		clk_enable(wdog_clk);
 
 	if (cpu_is_mx1())
 		wcr_enable = (1 << 0);
+	/*
+	 * Some i.MX6 boards use WDOG2 to reset external pmic in bypass mode,
+	 * so do WDOG2 reset here. Do not set SRS, since we will
+	 * trigger external POR later. Use WDOG1 to reset in ldo-enable
+	 * mode. You can set it by "fsl,wdog-reset" in dts.
+	 * For i.MX6SX we have to trigger wdog-reset to reset QSPI-NOR flash to
+	 * workaround qspi-nor reboot issue whatever ldo-bypass or not.
+	 */
+	else if ((wdog_source == 2 && (cpu_is_imx6q() || cpu_is_imx6dl() ||
+			cpu_is_imx6sl())) || cpu_is_imx6sx())
+		wcr_enable = 0x14;
 	else
 		wcr_enable = (1 << 2);
 
+	pr_emerg("%s: Watchdog reset\n", __func__);
 	/* Assert SRS signal */
 	imx_writew(wcr_enable, wdog_base);
 	/*
@@ -68,12 +78,11 @@ void mxc_restart(enum reboot_mode mode, const char *cmd)
 	/* wait for reset to assert... */
 	mdelay(500);
 
-	pr_err("%s: Watchdog reset failed to assert reset\n", __func__);
+	pr_emerg("%s: Watchdog reset failed to assert reset\n", __func__);
 
 	/* delay to allow the serial port to show the message */
 	mdelay(50);
 
-reset_fallback:
 	/* we'll take a jump through zero as a poor second */
 	soft_restart(0);
 }
@@ -83,10 +92,48 @@ void __init mxc_arch_reset_init(void __iomem *base)
 	wdog_base = base;
 
 	wdog_clk = clk_get_sys("imx2-wdt.0", NULL);
-	if (IS_ERR(wdog_clk))
+	if (IS_ERR(wdog_clk)) {
 		pr_warn("%s: failed to get wdog clock\n", __func__);
-	else
-		clk_prepare(wdog_clk);
+		wdog_clk = NULL;
+		return;
+	}
+
+	clk_prepare(wdog_clk);
+}
+
+void __init mxc_arch_reset_init_dt(void)
+{
+	struct device_node *np = NULL;
+
+	if (cpu_is_imx6q() || cpu_is_imx6dl())
+		np = of_find_compatible_node(NULL, NULL, "fsl,imx6q-gpc");
+	else if (cpu_is_imx6sl())
+		np = of_find_compatible_node(NULL, NULL, "fsl,imx6sl-gpc");
+
+	if (np)
+		of_property_read_u32(np, "fsl,wdog-reset", &wdog_source);
+	pr_info("Use WDOG%d as reset source\n", wdog_source);
+
+	np = of_find_compatible_node(NULL, NULL, "fsl,imx21-wdt");
+	wdog_base = of_iomap(np, 0);
+	WARN_ON(!wdog_base);
+
+	/* Some i.MX6 boards use WDOG2 to reset board in ldo-bypass mode */
+	if (wdog_source == 2 && (cpu_is_imx6q() || cpu_is_imx6dl() ||
+		cpu_is_imx6sl())) {
+		np = of_find_compatible_node(np, NULL, "fsl,imx21-wdt");
+		wdog_base = of_iomap(np, 0);
+		WARN_ON(!wdog_base);
+	}
+
+	wdog_clk = of_clk_get(np, 0);
+	if (IS_ERR(wdog_clk)) {
+		pr_warn("%s: failed to get wdog clock\n", __func__);
+		wdog_clk = NULL;
+		return;
+	}
+
+	clk_prepare(wdog_clk);
 }
 
 #ifdef CONFIG_CACHE_L2X0
@@ -124,6 +171,8 @@ void __init imx_init_l2cache(void)
 	if (cpu_is_imx6q())
 		val &= ~(1 << 30 | 1 << 23);
 	writel_relaxed(val, l2x0_base + L310_PREFETCH_CTRL);
+	val = L310_DYNAMIC_CLK_GATING_EN | L310_STNDBY_MODE_EN;
+	writel_relaxed(val, l2x0_base + L310_POWER_CTRL);
 
 skip_if_enabled:
 	iounmap(l2x0_base);
