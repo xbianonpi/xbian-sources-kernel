@@ -330,6 +330,8 @@ static void __init imx6q_init_machine(void)
 	struct device *parent;
 	void __iomem *p;
 
+	mxc_arch_reset_init_dt();
+
 	if (cpu_is_imx6q() && imx_get_soc_revision() == IMX_CHIP_REVISION_2_0)
 		imx_print_silicon_rev("i.MX6QP", IMX_CHIP_REVISION_1_0);
 	else
@@ -492,4 +494,5 @@ DT_MACHINE_START(IMX6Q, "Freescale i.MX6 Quad/DualLite (Device Tree)")
 	.init_machine	= imx6q_init_machine,
 	.init_late      = imx6q_init_late,
 	.dt_compat	= imx6q_dt_compat,
+	.restart	= mxc_restart,
 MACHINE_END
