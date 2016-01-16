@@ -52,6 +52,8 @@ static struct cpufreq_frequency_table bcm2835_freq_table[] = {
 	{0, 0, CPUFREQ_TABLE_END},
 };
 
+static int reads;
+
 /*
  ===============================================
   clk_rate either gets or sets the clock rates.
@@ -149,6 +151,8 @@ static int bcm2835_cpufreq_driver_init(struct cpufreq_policy *policy)
 	/* measured value of how long it takes to change frequency */
 	const unsigned int transition_latency = 355000; /* ns */
 
+	reads = 0;
+
 	if (!rpi_firmware_get(NULL)) {
 		print_err("Firmware is not available\n");
 		return -ENODEV;
@@ -191,6 +195,8 @@ static int bcm2835_cpufreq_driver_target_index(struct cpufreq_policy *policy, un
 static unsigned int bcm2835_cpufreq_driver_get(unsigned int cpu)
 {
 	unsigned int actual_rate = bcm2835_cpufreq_get_clock(RPI_FIRMWARE_GET_CLOCK_RATE);
+	if (!(++reads -1))
+		actual_rate = bcm2835_freq_table[0].frequency;
 	print_debug("cpu%d: freq=%d\n", cpu, actual_rate);
 	return actual_rate <= bcm2835_freq_table[0].frequency ? bcm2835_freq_table[0].frequency : bcm2835_freq_table[1].frequency;
 }
