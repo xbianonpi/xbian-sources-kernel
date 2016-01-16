@@ -15,6 +15,7 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/crm_regs.h>
 #include <ipu_pixfmt.h>
+#include <asm/arch/iomux.h>
 
 #ifdef CONFIG_FSL_ESDHC
 #include <fsl_esdhc.h>
@@ -22,7 +23,7 @@
 
 char *get_reset_cause(void)
 {
-	u32 cause;
+	u32 cause, gpr1, gpr12;
 	struct src *src_regs = (struct src *)SRC_BASE_ADDR;
 
 	cause = readl(&src_regs->srsr);
@@ -36,8 +37,17 @@ char *get_reset_cause(void)
 		return "CSU";
 	case 0x00008:
 		return "IPP USER";
-	case 0x00010:
+	case 0x00010: {
+		struct iomuxc_base_regs *const iomuxc_regs
+			= (struct iomuxc_base_regs *) IOMUXC_BASE_ADDR;
+		gpr1 = readl(&iomuxc_regs->gpr[1]);
+		gpr12 = readl(&iomuxc_regs->gpr[12]);
+		gpr1 &= ~(1 << 16);
+		gpr12 &= ~(1 << 10);
+		writel(gpr1, &iomuxc_regs->gpr[1]);
+		writel(gpr12, &iomuxc_regs->gpr[12]);
 		return "WDOG";
+	}
 	case 0x00020:
 		return "JTAG HIGH-Z";
 	case 0x00040:
