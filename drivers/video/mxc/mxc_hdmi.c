@@ -2328,7 +2328,8 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 		edid_status = mxc_hdmi_read_edid(hdmi);
 	}
 
-	if (!ignore_edid && !memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
+	if (!ignore_edid && edid_status == HDMI_EDID_SUCCESS &&
+	    !memcmp(edid_old, hdmi->edid, HDMI_EDID_LEN)) {
 		dev_info(&hdmi->pdev->dev, "same edid\n");
 		edid_status = HDMI_EDID_SAME;
 	}
