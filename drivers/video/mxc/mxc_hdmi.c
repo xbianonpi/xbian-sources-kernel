@@ -173,6 +173,7 @@ struct mxc_hdmi {
 	struct mxc_edid_cfg edid_cfg;
 	u8 edid[HDMI_EDID_LEN];
 	const struct firmware *edid_from_fw;
+	bool firmware_run;
 	bool fb_reg;
 	enum hotplug_state hp_state;
 	u8 blank;
@@ -2386,12 +2387,13 @@ static void mxc_hdmi_edid_from_file(const struct firmware *fw, void *data)
 		return;
 
 	hdmi->edid_from_fw = fw;
+	hdmi->firmware_run = true;
 
 	console_lock();
 	fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
 	console_unlock();
 
-	mxc_hdmi_cable_connected(hdmi);
+	mod_timer(&hdmi->jitter_timer, jiffies + msecs_to_jiffies(25));
 }
 
 static int mxc_hdmi_power_on(struct mxc_dispdrv_handle *disp,
@@ -2450,15 +2452,18 @@ static void hotplug_worker(struct work_struct *work)
 
 	hdmi_phy_pol0 = hdmi_readb(HDMI_PHY_POL0);
 
-		dev_dbg(&hdmi->pdev->dev, "phy_int_stat=0x%x, phy_int_pol=0x%x, plug_event=0x%x, plug_mask=0x%x\n",
-			hdmi->latest_intr_stat, hdmi_phy_pol0, hdmi->plug_event, hdmi->plug_mask);
+		if (!hdmi->firmware_run) {
+			dev_dbg(&hdmi->pdev->dev, "phy_int_stat=0x%x, phy_int_pol=0x%x, plug_event=0x%x, plug_mask=0x%x\n",
+				hdmi->latest_intr_stat, hdmi_phy_pol0, hdmi->plug_event, hdmi->plug_mask);
 
-		/* Make HPD intr active low to capture unplug event or
-		 * active high to capture plugin event */
-		hdmi_writeb((hdmi->plug_mask & ~hdmi_phy_pol0), HDMI_PHY_POL0);
+			/* Make HPD intr active low to capture unplug event or
+			 * active high to capture plugin event */
+			hdmi_writeb((hdmi->plug_mask & ~hdmi_phy_pol0), HDMI_PHY_POL0);
+		}
+
 
 		/* cable connection changes */
-		if (hdmi_phy_pol0 & hdmi->plug_mask) {
+		if (hdmi_phy_pol0 & hdmi->plug_mask || hdmi->firmware_run) {
 			/* Plugin event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugin\n");
 
@@ -2470,7 +2475,11 @@ static void hotplug_worker(struct work_struct *work)
 			mxc_hdmi_cec_handle(0x80);
 #endif
 			mxc_hdmi_event(hdmi, "EVENT=plugin");
-		} else {
+			if (hdmi->firmware_run) {
+				hdmi->firmware_run = false;
+				return;
+			}
+		} else if (!(hdmi_phy_pol0 & hdmi->plug_mask)) {
 			/* Plugout event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
 			mxc_hdmi_abort_stream();
@@ -2956,6 +2965,7 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 
 	hdmi_get_of_property(hdmi);
 	hdmi->edid_from_fw = NULL;
+	hdmi->firmware_run = false;
 
 	if (irq < 0)
 		return -ENODEV;
