@@ -42,7 +42,7 @@
 #define GPU_VPU_PUP_REQ		BIT(1)
 #define GPU_VPU_PDN_REQ		BIT(0)
 
-#define GPC_CLK_MAX		6
+#define GPC_CLK_MAX		10
 
 struct pu_domain {
 	struct generic_pm_domain base;
