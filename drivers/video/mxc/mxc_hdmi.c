@@ -3086,8 +3086,11 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 	hdmi->dft_mode_set = false;
 
 	mode = mxc_fb_find_nearest_mode(&m, &hdmi->fbi->modelist, false);
-	if (!mode)
+	if (!mode) {
 		pr_err("%s: could not find mode in modelist\n", __func__);
+		ret = -ENOENT;
+		goto erate2;
+	}
 	/* Save default video mode */
 	memcpy(&hdmi->default_mode, mode, sizeof(struct fb_videomode));
 
