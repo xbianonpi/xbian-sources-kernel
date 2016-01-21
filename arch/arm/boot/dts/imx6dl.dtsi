@@ -121,7 +121,7 @@
 
 		aips1: aips-bus@02000000 {
 			vpu@02040000 {
-				iramsize = <0>;
+				iramsize = <0x6000>;
 				status = "okay";
 			};
 
