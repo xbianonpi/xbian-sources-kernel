@@ -2255,6 +2255,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 	if (!hdmi->dft_mode_set) {
 		fb_videomode_to_var(&var, &hdmi->default_mode);
 		hdmi->dft_mode_set = true;
+		new_screen = true;
 	} else
 		fb_videomode_to_var(&var, &hdmi->previous_non_vga_mode);
 
