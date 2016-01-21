@@ -2367,6 +2367,15 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
 }
 
+static void mxc_hdmi_event(struct mxc_hdmi *hdmi, const char *event)
+{
+	char event_string[32];
+	char *envp[] = { event_string, NULL };
+
+	sprintf(event_string, event);
+	kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
+}
+
 static void mxc_hdmi_edid_from_file(const struct firmware *fw, void *data)
 {
 	struct mxc_hdmi *hdmi = data;
@@ -2435,8 +2444,6 @@ static void hotplug_worker(struct work_struct *work)
 		container_of(work, struct mxc_hdmi, hotplug_work);
 	u32 hdmi_phy_pol0, hdmi_phy_mask0;
 	unsigned long flags;
-	char event_string[32];
-	char *envp[] = { event_string, NULL };
 #if defined(CONFIG_MXC_HDMI_CEC)
 	u32 l;
 #endif
@@ -2462,22 +2469,19 @@ static void hotplug_worker(struct work_struct *work)
 #elif defined(CONFIG_MXC_HDMI_CEC_SR)
 			mxc_hdmi_cec_handle(0x80);
 #endif
-			sprintf(event_string, "EVENT=plugin");
-			kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
+			mxc_hdmi_event(hdmi, "EVENT=plugin");
 		} else {
 			/* Plugout event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
 			mxc_hdmi_abort_stream();
 			hdmi_set_cable_state(0);
 			mxc_hdmi_cable_disconnected(hdmi);
-
-			sprintf(event_string, "EVENT=plugout");
-			kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
 #if defined(CONFIG_MXC_HDMI_CEC)
 			mxc_hdmi_cec_handle(0x0);
 #elif defined(CONFIG_MXC_HDMI_CEC_SR)
 			mxc_hdmi_cec_handle(0x100);
 #endif
+			mxc_hdmi_event(hdmi, "EVENT=plugout");
 		}
 
 	/* Lock here to ensure full powerdown sequence
@@ -2511,12 +2515,9 @@ static void hdcp_hdp_worker(struct work_struct *work)
 	struct delayed_work *delay_work = to_delayed_work(work);
 	struct mxc_hdmi *hdmi =
 		container_of(delay_work, struct mxc_hdmi, hdcp_hdp_work);
-	char event_string[32];
-	char *envp[] = { event_string, NULL };
 
 	/* HDCP interrupt */
-	sprintf(event_string, "EVENT=hdcpint");
-	kobject_uevent_env(&hdmi->pdev->dev.kobj, KOBJ_CHANGE, envp);
+	mxc_hdmi_event(hdmi, "EVENT=hdcpint");
 
 	/* Unmute interrupts in HDCP application*/
 }
