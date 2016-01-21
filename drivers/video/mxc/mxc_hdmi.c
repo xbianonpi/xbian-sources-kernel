@@ -2306,7 +2306,7 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		mxc_hdmi_notify_fb(hdmi, new_screen);
 }
 
-static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
+static int mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 {
 	int edid_status;
 	u8 edid_old[HDMI_EDID_LEN];
@@ -2367,6 +2367,7 @@ static void mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	mxc_hdmi_set_mode(hdmi, edid_status);
 
 	dev_dbg(&hdmi->pdev->dev, "%s exit\n", __func__);
+	return edid_status;
 }
 
 static void mxc_hdmi_event(struct mxc_hdmi *hdmi, const char *event)
@@ -2382,17 +2383,21 @@ static void mxc_hdmi_edid_from_file(const struct firmware *fw, void *data)
 {
 	struct mxc_hdmi *hdmi = data;
 
-	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
-
 	if (!fw)
 		return;
 
 	hdmi->edid_from_fw = fw;
 	hdmi->firmware_run = true;
 
-	console_lock();
-	fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
-	console_unlock();
+	if (hdmi->phy_enabled) {
+		dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
+		mxc_hdmi_event(hdmi, "EVENT=plugout");
+		hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
+
+		console_lock();
+		fb_blank(hdmi->fbi, FB_BLANK_POWERDOWN);
+		console_unlock();
+	}
 
 	mod_timer(&hdmi->jitter_timer, jiffies + msecs_to_jiffies(25));
 }
@@ -2468,13 +2473,14 @@ static void hotplug_worker(struct work_struct *work)
 			/* Plugin event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugin\n");
 
-			mxc_hdmi_cable_connected(hdmi);
+			if (mxc_hdmi_cable_connected(hdmi) == HDMI_EDID_SUCCESS) {
 #if defined(CONFIG_MXC_HDMI_CEC)
-			memcpy(&l, &hdmi->edid_cfg.physical_address, 4 *sizeof(u8));
-			mxc_hdmi_cec_handle(l);
+				memcpy(&l, &hdmi->edid_cfg.physical_address, 4 *sizeof(u8));
+				mxc_hdmi_cec_handle(l);
 #elif defined(CONFIG_MXC_HDMI_CEC_SR)
-			mxc_hdmi_cec_handle(0x80);
+				mxc_hdmi_cec_handle(0x80);
 #endif
+			}
 			mxc_hdmi_event(hdmi, "EVENT=plugin");
 			if (hdmi->firmware_run) {
 				hdmi->firmware_run = false;
