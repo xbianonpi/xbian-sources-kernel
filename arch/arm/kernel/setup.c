@@ -153,6 +153,7 @@ EXPORT_SYMBOL(elf_platform);
 
 static const char *cpu_name;
 static const char *machine_name;
+static const char *model_name;
 static char __initdata cmd_line[COMMAND_LINE_SIZE];
 const struct machine_desc *machine_desc __initdata;
 
@@ -1068,10 +1069,11 @@ void __init setup_arch(char **cmdline_p)
 		mdesc = setup_machine_tags(__atags_pointer, __machine_arch_type);
 	machine_desc = mdesc;
 
-	machine_name = of_flat_dt_get_machine_name();
-	if (!machine_name)
-		machine_name = mdesc->name;
+	model_name = of_flat_dt_get_machine_name();
+	if (!model_name)
+		model_name = mdesc->name;
 
+	machine_name = mdesc->name;
 	dump_stack_set_arch_desc("%s", mdesc->name);
 
 	if (mdesc->reboot_mode != REBOOT_HARD)
@@ -1268,7 +1270,7 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU revision\t: %d\n\n", cpuid & 15);
 	}
 
-	seq_printf(m, "Hardware\t: %s\n", machine_name);
+	seq_printf(m, "Hardware\t: %s\n", model_name);
 	seq_printf(m, "Revision\t: %04x\n", system_rev);
 	seq_printf(m, "Serial\t\t: %s\n", system_serial);
 
