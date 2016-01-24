@@ -491,4 +491,4 @@ static int __init imx_pgc_init(void)
 {
 	return platform_driver_register(&imx_gpc_driver);
 }
-subsys_initcall(imx_pgc_init);
+core_initcall(imx_pgc_init);
