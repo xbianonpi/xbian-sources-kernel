@@ -28,12 +28,14 @@
 			next-level-cache = <&L2>;
 			operating-points = <
 				/* kHz    uV */
+				1200000 1275000
 				996000  1250000
 				792000  1175000
 				396000  1175000
 			>;
 			fsl,soc-operating-points = <
 				/* ARM kHz  SOC-PU uV */
+				1200000 1250000
 				996000	1175000
 				792000	1175000
 				396000	1175000
