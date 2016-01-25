@@ -42,6 +42,7 @@
 
 static struct fec_platform_data fec_pdata;
 static int ar803x_smarteee = 0;
+static int oc = 0;
 
 static int __init ar803x_smarteee_setup(char *__unused)
 {
@@ -400,6 +401,12 @@ static void __init imx6q_init_machine(void)
 #define OCOTP_CFG3_SPEED_996MHZ		0x2
 #define OCOTP_CFG3_SPEED_852MHZ		0x1
 
+static int __init overclock_setup(char *options)
+{
+	return kstrtol(options, 0, (long int *)&oc);
+}
+__setup("overclock=", overclock_setup);
+
 static void __init imx6q_opp_check_speed_grading(struct device *cpu_dev)
 {
 	struct device_node *np;
@@ -430,7 +437,14 @@ static void __init imx6q_opp_check_speed_grading(struct device *cpu_dev)
 	val >>= OCOTP_CFG3_SPEED_SHIFT;
 	val &= 0x3;
 
-	if ((val != OCOTP_CFG3_SPEED_1P2GHZ) && cpu_is_imx6q())
+	if (val == OCOTP_CFG3_SPEED_996MHZ && oc) {
+		val = OCOTP_CFG3_SPEED_1P2GHZ;
+		pr_info("IMX6 OC: Overclock active to 1.2GHZ\n");
+	} else {
+		pr_info("IMX6 OC: Overclock not active\n");
+	}
+	if ((val != OCOTP_CFG3_SPEED_1P2GHZ) &&
+	    (cpu_is_imx6q() || cpu_is_imx6dl()))
 		if (dev_pm_opp_disable(cpu_dev, 1200000000))
 			pr_warn("failed to disable 1.2 GHz OPP\n");
 	if (val < OCOTP_CFG3_SPEED_996MHZ)
