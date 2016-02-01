@@ -1861,6 +1861,7 @@ static int mxc_hdmi_read_edid(struct mxc_hdmi *hdmi)
 	if (hdmi->edid_from_fw) {
 		memcpy(hdmi->edid, hdmi->edid_from_fw->data, min((int)HDMI_EDID_LEN, (int)hdmi->edid_from_fw->size));
 		ret = mxc_edid_parse_raw(hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
+		hdmi->edid_cfg.cea_basicaudio = !!(hdmi_readb(HDMI_PHY_STAT0) & HDMI_DVI_STAT);
 	} else if (!hdcp_init) {
 		ret = mxc_edid_read(hdmi_i2c->adapter, hdmi_i2c->addr,
 				hdmi->edid, &hdmi->edid_cfg, hdmi->fbi);
@@ -2714,6 +2715,9 @@ static void mxc_hdmi_setup(struct mxc_hdmi *hdmi, unsigned long event)
 	hdmi_video_sample(hdmi);
 
 	mxc_hdmi_clear_overflow(hdmi);
+
+	if (!hdmi->edid_cfg.cea_basicaudio)
+		hdmi_set_cable_state(0);
 
 	if (hdmi->hp_state == HDMI_HOTPLUG_CONNECTED_HDMI)
 		hdmi_enable_overflow_interrupts();
