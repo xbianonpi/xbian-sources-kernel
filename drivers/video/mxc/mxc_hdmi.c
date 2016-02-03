@@ -2811,9 +2811,9 @@ static int mxc_hdmi_fb_event(struct notifier_block *nb,
 			/* Unmute interrupts */
 			hdmi_writeb(~hdmi->plug_event, HDMI_IH_MUTE_PHY_STAT0);
 
-			hdmi_set_blank_state(1);
-			if (check_hdmi_state())
+			if (hdmi->hp_state > HDMI_HOTPLUG_DISCONNECTED)
 				mxc_hdmi_setup(hdmi, val);
+			hdmi_set_blank_state(1);
 
 		} else if (*((int *)event->data) != hdmi->blank) {
 			dev_dbg(&hdmi->pdev->dev,
