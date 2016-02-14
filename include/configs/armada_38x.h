@@ -718,4 +718,7 @@ extern int nand_get_env_offs(void);
 
 #define CONFIG_STACKSIZE        (1 << 20)       /* regular stack - up to 4M (in case of exception)*/
 
+// support non-mkimage'd ramdisks
+#define CONFIG_SUPPORT_RAW_INITRD
+
 #endif /* __CONFIG_H */
