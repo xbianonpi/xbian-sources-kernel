@@ -83,7 +83,7 @@
 
 	soc {
 		pmu {
-			interrupt-affinity = <&cpu0>, <&cpu1>, <&cpu2>, <&cpu3>;
+			compatible = "arm,cortex-a9-pmu";
 		};
 
 		busfreq { /* BUSFREQ */
