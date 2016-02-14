@@ -223,7 +223,7 @@ DEBUG_MODE_FLAG = no
 endif
 endif
 
-CFLAGS   += -Wall $(INCLUDE) $(DEBUG_FLAGS) $(CPUOPTS) -msoft-float -mabi=aapcs
+CFLAGS   += -Wall $(INCLUDE) $(DEBUG_FLAGS) $(CPUOPTS) -msoft-float -mabi=aapcs -fno-stack-protector
 
 ifeq ($(BOARD),msys_bc2)
 CFLAGS   += -fPIE -fno-zero-initialized-in-bss -fno-unwind-tables
