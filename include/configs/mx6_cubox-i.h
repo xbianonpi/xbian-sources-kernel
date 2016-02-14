@@ -29,6 +29,9 @@
 #define CONFIG_INITRD_TAG
 #define CONFIG_REVISION_TAG
 
+// support non-mkimage'd ramdisks
+#define CONFIG_SUPPORT_RAW_INITRD
+
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(8 * SZ_1M)
 
