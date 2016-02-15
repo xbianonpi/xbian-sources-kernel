@@ -141,8 +141,8 @@ EXPORT_SYMBOL(iec_header);
  *    is necessary for 6 ch.
  */
 #define HDMI_DMA_PERIOD_BYTES		(12288)
-#define HDMI_DMA_BUF_SIZE		(1280 * 1024)
-#define HDMI_PCM_BUF_SIZE		(1280 * 1024)
+#define HDMI_DMA_BUF_SIZE		(128 * 1024)
+#define HDMI_PCM_BUF_SIZE		(128 * 1024)
 
 #define hdmi_audio_debug(dev, reg) \
 	dev_dbg(dev, #reg ": 0x%02x\n", hdmi_readb(reg))
