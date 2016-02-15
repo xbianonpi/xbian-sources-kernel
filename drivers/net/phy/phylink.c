@@ -20,6 +20,7 @@
 #include <linux/phylink.h>
 #include <linux/spinlock.h>
 #include <linux/workqueue.h>
+#include <linux/module.h>
 
 #include "swphy.h"
 
@@ -29,6 +30,10 @@
 #define ADVERTISED_INTERFACES \
 	(ADVERTISED_TP | ADVERTISED_MII | ADVERTISED_FIBRE | \
 	 ADVERTISED_BNC | ADVERTISED_AUI | ADVERTISED_Backplane)
+
+MODULE_DESCRIPTION("platform:phylib");
+MODULE_AUTHOR("Russell King");
+MODULE_LICENSE("GPL v2");
 
 static LIST_HEAD(phylinks);
 static DEFINE_MUTEX(phylink_mutex);
