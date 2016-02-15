@@ -1967,7 +1967,7 @@ static int sdma_probe(struct platform_device *pdev)
 	clk_prepare(sdma->clk_ipg);
 	clk_prepare(sdma->clk_ahb);
 
-	ret = devm_request_irq(&pdev->dev, irq, sdma_int_handler, IRQF_NO_THREAD, "sdma",
+	ret = devm_request_irq(&pdev->dev, irq, sdma_int_handler, 0, "sdma",
 			       sdma);
 	if (ret)
 		return ret;
