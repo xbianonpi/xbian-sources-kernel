@@ -433,8 +433,6 @@ static long vpu_ioctl(struct file *filp, u_int cmd,
 			ret = vpu_alloc_dma_buffer(&(rec->mem));
 			if (ret == -1) {
 				kfree(rec);
-				dev_err(vpu_dev,
-					"Physical memory allocation error!\n");
 				break;
 			}
 			ret = copy_to_user((void __user *)arg, &(rec->mem),
