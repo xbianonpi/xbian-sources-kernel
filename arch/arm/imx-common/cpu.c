@@ -21,7 +21,7 @@
 #include <fsl_esdhc.h>
 #endif
 
-char *get_reset_cause(void)
+char *get_reset_cause(u32 imxtype)
 {
 	u32 cause, gpr1, gpr12;
 	struct src *src_regs = (struct src *)SRC_BASE_ADDR;
@@ -40,12 +40,17 @@ char *get_reset_cause(void)
 	case 0x00010: {
 		struct iomuxc_base_regs *const iomuxc_regs
 			= (struct iomuxc_base_regs *) IOMUXC_BASE_ADDR;
-		gpr1 = readl(&iomuxc_regs->gpr[1]);
-		gpr12 = readl(&iomuxc_regs->gpr[12]);
-		gpr1 &= ~(1 << 16);
-		gpr12 &= ~(1 << 10);
-		writel(gpr1, &iomuxc_regs->gpr[1]);
-		writel(gpr12, &iomuxc_regs->gpr[12]);
+
+		//if (imxtype == MXC_CPU_MX6SOLO || imxtype == MXC_CPU_MX6Q) {
+		{
+			printf("  Reset PCIe regs\n");
+			gpr1 = readl(&iomuxc_regs->gpr[1]);
+			gpr12 = readl(&iomuxc_regs->gpr[12]);
+			gpr1 &= ~(1 << 16);
+			gpr12 &= ~(1 << 10);
+			writel(gpr1, &iomuxc_regs->gpr[1]);
+			writel(gpr12, &iomuxc_regs->gpr[12]);
+		}
 		return "WDOG";
 	}
 	case 0x00020:
@@ -133,16 +138,17 @@ const char *get_imx_type(u32 imxtype)
 
 int print_cpuinfo(void)
 {
-	u32 cpurev;
+	u32 cpurev, imxtype;
 
 	cpurev = get_cpu_rev();
 
+	imxtype = (cpurev & 0xFF000) >> 12;
 	printf("CPU:   Freescale i.MX%s rev%d.%d at %d MHz\n",
-		get_imx_type((cpurev & 0xFF000) >> 12),
+		get_imx_type(imxtype),
 		(cpurev & 0x000F0) >> 4,
 		(cpurev & 0x0000F) >> 0,
 		mxc_get_clock(MXC_ARM_CLK) / 1000000);
-	printf("Reset cause: %s\n", get_reset_cause());
+	printf("Reset cause: %s\n", get_reset_cause(imxtype));
 	return 0;
 }
 #endif
