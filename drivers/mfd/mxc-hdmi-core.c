@@ -41,6 +41,8 @@
 #include <linux/of_device.h>
 #include <linux/mod_devicetable.h>
 
+#include <linux/fb.h>
+
 struct mxc_hdmi_data {
 	struct platform_device *pdev;
 	unsigned long __iomem *reg_base;
@@ -80,6 +82,45 @@ static unsigned int hdmi_cable_state;
 static unsigned int hdmi_blank_state;
 static unsigned int hdmi_abort_state;
 static spinlock_t hdmi_audio_lock, hdmi_blank_state_lock, hdmi_cable_state_lock;
+static struct notifier_block nb;
+static struct fb_info *hdmi_fb_info;
+
+void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi);
+
+
+static void hdmi_regenerator_wrapper(void)
+{
+	if (hdmi_fb_info && hdmi_fb_info->mode) {
+		mxc_hdmi_abort_stream();
+		hdmi_clk_regenerator_update_pixel_clock(hdmi_fb_info->mode->pixclock, hdmi_fb_info);
+		mxc_hdmi_resume_stream();
+	}
+}
+
+static int hdmi_fb_event(struct notifier_block *nb,
+				unsigned long val, void *v)
+{
+	struct fb_event *event = v;
+	struct fb_info  *info  = event->info;
+
+	switch (val) {
+	case FB_EVENT_BLANK:
+		hdmi_blank_state = *((int *)event->data) == FB_BLANK_UNBLANK ? 1 : 0;
+	case FB_EVENT_NEW_MODELIST:
+	case FB_EVENT_MODE_CHANGE:
+	case FB_EVENT_MODE_CHANGE_ALL:
+		pr_debug("%s event=0x%x\n", __func__, (uint)val);
+		if (info)
+			hdmi_fb_info = info;
+
+		hdmi_regenerator_wrapper();
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
 
 void hdmi_set_dvi_mode(unsigned int state)
 {
@@ -91,36 +132,29 @@ EXPORT_SYMBOL(hdmi_set_dvi_mode);
 unsigned int hdmi_set_cable_state(unsigned int state)
 {
 	unsigned long flags;
-	struct snd_pcm_substream *substream = hdmi_audio_stream_playback;
 
 	spin_lock_irqsave(&hdmi_cable_state_lock, flags);
 	hdmi_cable_state = state;
 	spin_unlock_irqrestore(&hdmi_cable_state_lock, flags);
 
-	if (check_hdmi_state() && substream && hdmi_abort_state) {
-		hdmi_abort_state = 0;
-		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_PAUSE_RELEASE);
-	}
+	hdmi_regenerator_wrapper();
 	return 0;
 }
 EXPORT_SYMBOL(hdmi_set_cable_state);
 
 unsigned int hdmi_set_blank_state(unsigned int state)
 {
-	unsigned long flags;
-	struct snd_pcm_substream *substream = hdmi_audio_stream_playback;
-
-	spin_lock_irqsave(&hdmi_blank_state_lock, flags);
-	hdmi_blank_state = state;
-	spin_unlock_irqrestore(&hdmi_blank_state_lock, flags);
-
-	if (check_hdmi_state() && substream && hdmi_abort_state) {
-		hdmi_abort_state = 0;
-		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_PAUSE_RELEASE);
-	}
 	return 0;
 }
 EXPORT_SYMBOL(hdmi_set_blank_state);
+
+static void hdmi_audio_resume_stream(struct snd_pcm_substream *substream)
+{
+	if (check_hdmi_state()) {
+		hdmi_abort_state = 0;
+		substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_PAUSE_RELEASE);
+	}
+}
 
 static void hdmi_audio_abort_stream(struct snd_pcm_substream *substream)
 {
@@ -135,6 +169,18 @@ static void hdmi_audio_abort_stream(struct snd_pcm_substream *substream)
 
 	snd_pcm_stream_unlock_irqrestore(substream, flags);
 }
+
+int mxc_hdmi_resume_stream(void)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&hdmi_audio_lock, flags);
+	if (hdmi_audio_stream_playback && hdmi_abort_state)
+		hdmi_audio_resume_stream(hdmi_audio_stream_playback);
+	spin_unlock_irqrestore(&hdmi_audio_lock, flags);
+
+	return 0;
+}
+EXPORT_SYMBOL(mxc_hdmi_resume_stream);
 
 int mxc_hdmi_abort_stream(void)
 {
@@ -167,10 +213,11 @@ EXPORT_SYMBOL(check_hdmi_state);
 
 int mxc_hdmi_register_audio(struct snd_pcm_substream *substream)
 {
-	unsigned long flags, flags1;
+	unsigned long flags, flags1, flags2;
 	int ret = 0;
 
 	snd_pcm_stream_lock_irqsave(substream, flags);
+	spin_lock_irqsave(&hdmi_cable_state_lock, flags2);
 
 	if (substream && hdmi_core_init && hdmi_cable_state) {
 		spin_lock_irqsave(&hdmi_audio_lock, flags1);
@@ -179,11 +226,12 @@ int mxc_hdmi_register_audio(struct snd_pcm_substream *substream)
 			ret = -EINVAL;
 		}
 		hdmi_audio_stream_playback = substream;
-		hdmi_abort_state = !check_hdmi_state();
+		hdmi_abort_state = !hdmi_blank_state;
 		spin_unlock_irqrestore(&hdmi_audio_lock, flags1);
 	} else
 		ret = -EINVAL;
 
+	spin_unlock_irqrestore(&hdmi_cable_state_lock, flags2);
 	snd_pcm_stream_unlock_irqrestore(substream, flags);
 
 	return ret;
@@ -517,10 +565,9 @@ static int hdmi_core_get_of_property(struct platform_device *pdev)
  * overflow condition in HDMI_IH_FC_STAT2 */
 void hdmi_init_clk_regenerator(void)
 {
-	if (pixel_clk_rate == 0) {
+	if (pixel_clk_rate == 0)
 		pixel_clk_rate = 74250000;
-		hdmi_set_clk_regenerator();
-	}
+	hdmi_set_clk_regenerator();
 }
 EXPORT_SYMBOL(hdmi_init_clk_regenerator);
 
@@ -531,12 +578,10 @@ void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi)
 	pixel_clk_rate = mxcPICOS2KHZ(pixclock, fbi) * 1000UL;
 	hdmi_set_clk_regenerator();
 }
-EXPORT_SYMBOL(hdmi_clk_regenerator_update_pixel_clock);
 
 void hdmi_set_dma_mode(unsigned int dma_running)
 {
 	hdmi_dma_running = dma_running;
-	hdmi_set_clk_regenerator();
 }
 EXPORT_SYMBOL(hdmi_set_dma_mode);
 
@@ -712,6 +757,11 @@ static int mxc_hdmi_core_probe(struct platform_device *pdev)
 	/* Replace platform data coming in with a local struct */
 	platform_set_drvdata(pdev, hdmi_data);
 
+	nb.notifier_call = hdmi_fb_event;
+	ret = fb_register_client(&nb);
+	if (ret < 0)
+		pr_err("%s failed to register fb_notifier\n", __func__);
+
 	return ret;
 
 eirq:
@@ -738,6 +788,7 @@ static int __exit mxc_hdmi_core_remove(struct platform_device *pdev)
 	struct mxc_hdmi_data *hdmi_data = platform_get_drvdata(pdev);
 	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
+	fb_unregister_client(&nb);
 	iounmap(hdmi_data->reg_base);
 	release_mem_region(res->start, resource_size(res));
 

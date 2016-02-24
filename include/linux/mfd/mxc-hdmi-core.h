@@ -44,7 +44,6 @@ unsigned int hdmi_irq_disable(int irq);
 void hdmi_set_sample_rate(unsigned int rate);
 void hdmi_set_dma_mode(unsigned int dma_running);
 void hdmi_init_clk_regenerator(void);
-void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi);
 
 void hdmi_set_edid_cfg(int edid_status, struct mxc_edid_cfg *cfg);
 int hdmi_get_edid_cfg(struct mxc_edid_cfg *cfg);
@@ -55,6 +54,7 @@ extern int mxc_hdmi_disp_id;
 void hdmi_set_registered(int registered);
 int hdmi_get_registered(void);
 int mxc_hdmi_abort_stream(void);
+int mxc_hdmi_resume_stream(void);
 int mxc_hdmi_register_audio(struct snd_pcm_substream *substream);
 void mxc_hdmi_unregister_audio(struct snd_pcm_substream *substream);
 void hdmi_set_dvi_mode(unsigned int state);
