@@ -2409,7 +2409,6 @@ static int mxc_hdmi_power_on(struct mxc_dispdrv_handle *disp,
 	struct mxc_hdmi *hdmi = mxc_dispdrv_getdata(disp);
 
 	mxc_hdmi_phy_init(hdmi);
-	hdmi_clk_regenerator_update_pixel_clock(hdmi->fbi->var.pixclock, hdmi->fbi);
 	return 0;
 }
 
