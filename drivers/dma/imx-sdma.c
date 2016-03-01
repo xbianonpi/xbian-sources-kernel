@@ -395,7 +395,8 @@ struct sdma_engine {
 	struct dma_device		dma_device;
 	struct clk			*clk_ipg;
 	struct clk			*clk_ahb;
-	raw_spinlock_t			channel_0_lock;
+	spinlock_t			channel_0_lock;
+	struct completion		channel_0_complete;
 	u32				script_number;
 	struct sdma_script_start_addrs	*script_addrs;
 	struct gen_pool 		*iram_pool;
@@ -611,20 +612,19 @@ static void sdma_enable_channel(struct sdma_engine *sdma, int channel)
 static int sdma_run_channel0(struct sdma_engine *sdma)
 {
 	int ret;
-	u32 reg;
 
+	init_completion(&sdma->channel_0_complete);
 	sdma_enable_channel(sdma, 0);
 
-	ret = readl_relaxed_poll_timeout_atomic(sdma->regs + SDMA_H_STATSTOP,
-						reg, !(reg & 1), 1, 500);
-	if (ret)
+	ret = wait_for_completion_timeout(&sdma->channel_0_complete, msecs_to_jiffies(500));
+	if (!ret)
 		dev_err(sdma->dev, "Timeout waiting for CH0 ready\n");
 
 	/* Set bits of CONFIG register with dynamic context switching */
 	if (readl(sdma->regs + SDMA_H_CONFIG) == 0)
 		writel_relaxed(SDMA_H_CONFIG_CSM, sdma->regs + SDMA_H_CONFIG);
 
-	return ret;
+	return ret ? 0 : -ETIMEDOUT;
 }
 
 static int sdma_load_script(struct sdma_engine *sdma, void *buf, int size,
@@ -634,7 +634,6 @@ static int sdma_load_script(struct sdma_engine *sdma, void *buf, int size,
 	void *buf_virt;
 	dma_addr_t buf_phys;
 	int ret;
-	unsigned long flags;
 	bool use_iram = true;
 
 	buf_virt = gen_pool_dma_alloc(sdma->iram_pool, size, &buf_phys);
@@ -645,7 +644,7 @@ static int sdma_load_script(struct sdma_engine *sdma, void *buf, int size,
 			return -ENOMEM;
 	}
 
-	raw_spin_lock_irqsave(&sdma->channel_0_lock, flags);
+	spin_lock(&sdma->channel_0_lock);
 
 	bd0->mode.command = C0_SETPM;
 	bd0->mode.status = BD_DONE | BD_INTR | BD_WRAP | BD_EXTD;
@@ -657,7 +656,7 @@ static int sdma_load_script(struct sdma_engine *sdma, void *buf, int size,
 
 	ret = sdma_run_channel0(sdma);
 
-	raw_spin_unlock_irqrestore(&sdma->channel_0_lock, flags);
+	spin_unlock(&sdma->channel_0_lock);
 
 	if (use_iram)
 		gen_pool_free(sdma->iram_pool, (unsigned long)buf_virt, size);
@@ -773,9 +772,15 @@ static irqreturn_t sdma_int_handler(int irq, void *dev_id)
 	unsigned long stat;
 
 	stat = readl_relaxed(sdma->regs + SDMA_H_INTR);
-	writel_relaxed(stat, sdma->regs + SDMA_H_INTR);
 	/* channel 0 is special and not handled here, see run_channel0() */
-	stat &= ~1;
+	clear_bit(0, &stat);
+	writel_relaxed(stat, sdma->regs + SDMA_H_INTR);
+
+	/*
+	 * finish sdma_run_channel0
+	 */
+	if (__test_and_clear_bit(0, &stat))
+		complete(&sdma->channel_0_complete);
 
 	while (stat) {
 		int channel = fls(stat) - 1;
@@ -904,7 +909,6 @@ static int sdma_load_context(struct sdma_channel *sdmac)
 	struct sdma_context_data *context = sdma->context;
 	struct sdma_buffer_descriptor *bd0 = sdma->channel[0].bd;
 	int ret;
-	unsigned long flags;
 
 	if (sdmac->direction == DMA_DEV_TO_MEM)
 		load_address = sdmac->pc_from_device;
@@ -925,7 +929,7 @@ static int sdma_load_context(struct sdma_channel *sdmac)
 	dev_dbg(sdma->dev, "event_mask0 = 0x%08x\n", (u32)sdmac->event_mask[0]);
 	dev_dbg(sdma->dev, "event_mask1 = 0x%08x\n", (u32)sdmac->event_mask[1]);
 
-	raw_spin_lock_irqsave(&sdma->channel_0_lock, flags);
+	spin_lock(&sdma->channel_0_lock);
 
 	memset(context, 0, sizeof(*context));
 	context->channel_state.pc = load_address;
@@ -951,7 +955,7 @@ static int sdma_load_context(struct sdma_channel *sdmac)
 	bd0->ext_buffer_addr = 2048 + (sizeof(*context) / 4) * channel;
 	ret = sdma_run_channel0(sdma);
 
-	raw_spin_unlock_irqrestore(&sdma->channel_0_lock, flags);
+	spin_unlock(&sdma->channel_0_lock);
 
 	return ret;
 }
@@ -1942,7 +1946,7 @@ static int sdma_probe(struct platform_device *pdev)
 	if (!sdma)
 		return -ENOMEM;
 
-	raw_spin_lock_init(&sdma->channel_0_lock);
+	spin_lock_init(&sdma->channel_0_lock);
 
 	sdma->dev = &pdev->dev;
 	sdma->drvdata = drvdata;
