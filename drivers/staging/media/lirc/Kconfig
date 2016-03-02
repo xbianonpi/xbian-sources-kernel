@@ -32,6 +32,18 @@ config LIRC_PARALLEL
 	help
 	  Driver for Homebrew Parallel Port Receivers
 
+config LIRC_HB
+       tristate "Homebrew GPIO Port Receiver/Transmitter for the Hummingboard"
+       depends on LIRC
+       help
+         Driver for Homebrew GPIO Port Receiver/Transmitter for the Hummingboard
+
+config LIRC_XBOX
+       tristate "Homebrew XBOX Receiver for the Hummingboard"
+       depends on LIRC
+       help
+         Homebrew XBOX Receiver for the Hummingboard
+
 config LIRC_SASEM
 	tristate "Sasem USB IR Remote"
 	depends on LIRC && USB
