@@ -11,3 +11,4 @@ obj-$(CONFIG_LIRC_XBOX)	+= lirc_xbox.o
 obj-$(CONFIG_LIRC_SASEM)	+= lirc_sasem.o
 obj-$(CONFIG_LIRC_SIR)		+= lirc_sir.o
 obj-$(CONFIG_LIRC_ZILOG)	+= lirc_zilog.o
+obj-$(CONFIG_LIRC_ATIUSB)	+= lirc_atiusb.o
