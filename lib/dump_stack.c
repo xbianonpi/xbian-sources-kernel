@@ -25,7 +25,6 @@ static atomic_t dump_lock = ATOMIC_INIT(-1);
 
 asmlinkage __visible void dump_stack(void)
 {
-	unsigned long flags;
 	int was_locked;
 	int old;
 	int cpu;
@@ -37,7 +36,6 @@ asmlinkage __visible void dump_stack(void)
 	migrate_disable();
 
 retry:
-	local_irq_save(flags);
 	cpu = smp_processor_id();
 	old = atomic_cmpxchg(&dump_lock, -1, cpu);
 	if (old == -1) {
@@ -45,7 +43,6 @@ retry:
 	} else if (old == cpu) {
 		was_locked = 1;
 	} else {
-		local_irq_restore(flags);
 		cpu_relax();
 		goto retry;
 	}
@@ -56,7 +53,6 @@ retry:
 		atomic_set(&dump_lock, -1);
 
 	migrate_enable();
-	local_irq_restore(flags);
 }
 #else
 asmlinkage __visible void dump_stack(void)
