@@ -42,10 +42,11 @@
 #include <linux/io.h>
 #include <linux/of_irq.h>
 #include <linux/of_device.h>
+#include <linux/pwm.h>
 #include <linux/clk.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/irqchip/chained_irq.h>
-
+#include "gpio-mvebu.h"
 /*
  * GPIO unit register offsets.
  */
@@ -74,24 +75,6 @@
 #define MVEBU_GPIO_SOC_VARIANT_ARMADAXP 0x3
 
 #define MVEBU_MAX_GPIO_PER_BANK		32
-
-struct mvebu_gpio_chip {
-	struct gpio_chip   chip;
-	spinlock_t	   lock;
-	void __iomem	  *membase;
-	void __iomem	  *percpu_membase;
-	int		   irqbase;
-	struct irq_domain *domain;
-	int		   soc_variant;
-
-	/* Used to preserve GPIO registers across suspend/resume */
-	u32                out_reg;
-	u32                io_conf_reg;
-	u32                blink_en_reg;
-	u32                in_pol_reg;
-	u32                edge_mask_regs[4];
-	u32                level_mask_regs[4];
-};
 
 /*
  * Functions returning addresses of individual registers for a given
@@ -216,7 +199,7 @@ static int mvebu_gpio_get(struct gpio_chip *chip, unsigned pin)
 	return (u >> pin) & 1;
 }
 
-static void mvebu_gpio_blink(struct gpio_chip *chip, unsigned pin, int value)
+void mvebu_gpio_blink(struct gpio_chip *chip, unsigned pin, int value)
 {
 	struct mvebu_gpio_chip *mvchip = gpiochip_get_data(chip);
 	unsigned long flags;
@@ -600,6 +583,8 @@ static int mvebu_gpio_suspend(struct platform_device *pdev, pm_message_t state)
 		BUG();
 	}
 
+	mvebu_pwm_suspend(mvchip);
+
 	return 0;
 }
 
@@ -643,6 +628,8 @@ static int mvebu_gpio_resume(struct platform_device *pdev)
 		BUG();
 	}
 
+	mvebu_pwm_resume(mvchip);
+
 	return 0;
 }
 
@@ -654,7 +641,6 @@ static int mvebu_gpio_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct irq_chip_generic *gc;
 	struct irq_chip_type *ct;
-	struct clk *clk;
 	unsigned int ngpios;
 	int soc_variant;
 	int i, cpu, id;
@@ -684,10 +670,10 @@ static int mvebu_gpio_probe(struct platform_device *pdev)
 		return id;
 	}
 
-	clk = devm_clk_get(&pdev->dev, NULL);
+	mvchip->clk = devm_clk_get(&pdev->dev, NULL);
 	/* Not all SoCs require a clock.*/
-	if (!IS_ERR(clk))
-		clk_prepare_enable(clk);
+	if (!IS_ERR(mvchip->clk))
+		clk_prepare_enable(mvchip->clk);
 
 	mvchip->soc_variant = soc_variant;
 	mvchip->chip.label = dev_name(&pdev->dev);
@@ -819,7 +805,8 @@ static int mvebu_gpio_probe(struct platform_device *pdev)
 		goto err_generic_chip;
 	}
 
-	return 0;
+	/* Armada 370/XP has simple PWM support for gpio lines */
+	return mvebu_pwm_probe(pdev, mvchip, id);
 
 err_generic_chip:
 	irq_remove_generic_chip(gc, IRQ_MSK(ngpios), IRQ_NOREQUEST,
