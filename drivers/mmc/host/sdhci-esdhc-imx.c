@@ -1078,6 +1078,9 @@ sdhci_esdhc_imx_probe_dt(struct platform_device *pdev,
 	if (of_find_property(np, "keep-power-in-suspend", NULL))
 		host->mmc->pm_caps |= MMC_PM_KEEP_POWER;
 
+	if (of_find_property(np, "fsl,needs-bus-on", NULL))
+		host->quirks2 |= SDHCI_QUIRK2_CARD_ON_NEEDS_BUS_ON;
+
 	mmc_of_parse_voltage(np, &host->ocr_mask);
 
 	/* sdr50 and sdr104 needs work on 1.8v signal voltage */
