@@ -113,8 +113,7 @@ static int hdmi_fb_event(struct notifier_block *nb,
 		if (info)
 			hdmi_fb_info = info;
 
-		if (hdmi_blank_state)
-			hdmi_regenerator_wrapper();
+		hdmi_regenerator_wrapper();
 		break;
 	default:
 		break;
