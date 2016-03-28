@@ -352,8 +352,10 @@ static int hdmi_cec_open(struct inode *inode, struct file *filp)
 
 	list_add_tail(&hdmi_cec->client_node, &hdmi_cec_root.client_head);
 	hdmi_cec_set_address(15, hdmi_cec);
+
 	mutex_unlock(&hdmi_cec_root.m_lock);
 
+	wake_up(&hdmi_cec_root.hdmi_cec_buf);
 	return 0;
 }
 
