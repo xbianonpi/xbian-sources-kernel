@@ -43,7 +43,6 @@ unsigned int hdmi_irq_disable(int irq);
 
 void hdmi_set_sample_rate(unsigned int rate);
 void hdmi_set_dma_mode(unsigned int dma_running);
-void hdmi_init_clk_regenerator(void);
 
 void hdmi_set_edid_cfg(int edid_status, struct mxc_edid_cfg *cfg);
 int hdmi_get_edid_cfg(struct mxc_edid_cfg *cfg);
