@@ -561,16 +561,6 @@ static int hdmi_core_get_of_property(struct platform_device *pdev)
 	return err;
 }
 
-/* Need to run this before phy is enabled the first time to prevent
- * overflow condition in HDMI_IH_FC_STAT2 */
-void hdmi_init_clk_regenerator(void)
-{
-	if (pixel_clk_rate == 0)
-		pixel_clk_rate = 74250000;
-	hdmi_set_clk_regenerator();
-}
-EXPORT_SYMBOL(hdmi_init_clk_regenerator);
-
 void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi)
 {
 
@@ -660,7 +650,7 @@ static int mxc_hdmi_core_probe(struct platform_device *pdev)
 
 	pixel_clk = NULL;
 	sample_rate = 48000;
-	pixel_clk_rate = 0;
+	pixel_clk_rate = 74250000;
 	hdmi_ratio = 100;
 
 	spin_lock_init(&irq_spinlock);
@@ -754,13 +744,15 @@ static int mxc_hdmi_core_probe(struct platform_device *pdev)
 	clk_disable_unprepare(iahb_clk);
 	clk_disable_unprepare(mipi_core_clk);
 
-	/* Replace platform data coming in with a local struct */
-	platform_set_drvdata(pdev, hdmi_data);
+	hdmi_set_clk_regenerator();
 
 	nb.notifier_call = hdmi_fb_event;
 	ret = fb_register_client(&nb);
 	if (ret < 0)
 		pr_err("%s failed to register fb_notifier\n", __func__);
+
+	/* Replace platform data coming in with a local struct */
+	platform_set_drvdata(pdev, hdmi_data);
 
 	return ret;
 
