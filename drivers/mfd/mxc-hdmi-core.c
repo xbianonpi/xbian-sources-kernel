@@ -109,7 +109,6 @@ static int hdmi_fb_event(struct notifier_block *nb,
 		spin_lock_irqsave(&hdmi_blank_state_lock, flags);
 		hdmi_blank_state = *((int *)event->data) == FB_BLANK_UNBLANK ? 1 : 0;
 		spin_unlock_irqrestore(&hdmi_blank_state_lock, flags);
-	case FB_EVENT_NEW_MODELIST:
 	case FB_EVENT_MODE_CHANGE:
 	case FB_EVENT_MODE_CHANGE_ALL:
 		pr_debug("%s event=0x%x\n", __func__, (uint)val);
