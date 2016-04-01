@@ -2297,8 +2297,6 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		dev_dbg(&hdmi->pdev->dev, "%s: New video mode\n", __func__);
 	}
 
-	hdmi_set_cable_state(1);
-
 	console_lock();
 	fb_blank(hdmi->fbi, FB_BLANK_UNBLANK);
 	console_unlock();
@@ -2313,6 +2311,8 @@ static int mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	u8 edid_old[HDMI_EDID_LEN];
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
+
+	hdmi_set_cable_state(1);
 
 	hdmi->hp_state = HDMI_HOTPLUG_CONNECTED_NO_EDID;
 	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
@@ -2490,7 +2490,6 @@ static void hotplug_worker(struct work_struct *work)
 			/* Plugout event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
 			mxc_hdmi_abort_stream();
-			hdmi_set_cable_state(0);
 			mxc_hdmi_cable_disconnected(hdmi);
 #if defined(CONFIG_MXC_HDMI_CEC)
 			mxc_hdmi_cec_handle(0x0);
@@ -2498,6 +2497,7 @@ static void hotplug_worker(struct work_struct *work)
 			mxc_hdmi_cec_handle(0x100);
 #endif
 			mxc_hdmi_event(hdmi, "EVENT=plugout");
+			hdmi_set_cable_state(0);
 		}
 
 	/* Lock here to ensure full powerdown sequence
