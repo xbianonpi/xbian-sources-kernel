@@ -76,6 +76,7 @@ int mxc_hdmi_disp_id;
 static int hdmi_core_edid_status;
 static struct mxc_edid_cfg hdmi_core_edid_cfg;
 static int hdmi_core_init;
+static unsigned int hdmi_dma_running;
 static struct snd_pcm_substream *hdmi_audio_stream_playback;
 static unsigned int hdmi_cable_state;
 static unsigned int hdmi_blank_state;
@@ -379,9 +380,11 @@ static void hdmi_set_clock_regenerator_n(unsigned int value)
 {
 	u8 val;
 
-	hdmi_writeb(value & 0xff, HDMI_AUD_N1);
-	hdmi_writeb(0, HDMI_AUD_N2);
-	hdmi_writeb(0, HDMI_AUD_N3);
+	if (!hdmi_dma_running) {
+		hdmi_writeb(value & 0xff, HDMI_AUD_N1);
+		hdmi_writeb(0, HDMI_AUD_N2);
+		hdmi_writeb(0, HDMI_AUD_N3);
+	}
 
 	hdmi_writeb(value & 0xff, HDMI_AUD_N1);
 	hdmi_writeb((value >> 8) & 0xff, HDMI_AUD_N2);
@@ -397,9 +400,11 @@ static void hdmi_set_clock_regenerator_cts(unsigned int cts)
 {
 	u8 val;
 
-	hdmi_writeb(cts & 0xff, HDMI_AUD_CTS1);
-	hdmi_writeb(0, HDMI_AUD_CTS2);
-	hdmi_writeb(0, HDMI_AUD_CTS3);
+	if (!hdmi_dma_running) {
+		hdmi_writeb(cts & 0xff, HDMI_AUD_CTS1);
+		hdmi_writeb(0, HDMI_AUD_CTS2);
+		hdmi_writeb(0, HDMI_AUD_CTS3);
+	}
 
 	/* Must be set/cleared first */
 	val = hdmi_readb(HDMI_AUD_CTS3);
@@ -576,6 +581,7 @@ void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi)
 
 void hdmi_set_dma_mode(unsigned int dma_running)
 {
+	hdmi_dma_running = dma_running;
 }
 EXPORT_SYMBOL(hdmi_set_dma_mode);
 
@@ -633,6 +639,7 @@ static int mxc_hdmi_core_probe(struct platform_device *pdev)
 #endif
 
 	hdmi_core_init = 0;
+	hdmi_dma_running = 0;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res)
