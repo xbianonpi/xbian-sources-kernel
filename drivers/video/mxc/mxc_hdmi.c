@@ -3063,10 +3063,6 @@ static int mxc_hdmi_disp_init(struct mxc_dispdrv_handle *disp,
 		hdmi_readb(HDMI_PRODUCT_ID0),
 		hdmi_readb(HDMI_PRODUCT_ID1));
 
-	/* To prevent overflows in HDMI_IH_FC_STAT2, set the clk regenerator
-	 * N and cts values before enabling phy */
-	hdmi_init_clk_regenerator();
-
 	INIT_LIST_HEAD(&hdmi->fbi->modelist);
 
 	spin_lock_init(&hdmi->irq_lock);
