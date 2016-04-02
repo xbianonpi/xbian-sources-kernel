@@ -53,7 +53,6 @@ extern int mxc_hdmi_disp_id;
 void hdmi_set_registered(int registered);
 int hdmi_get_registered(void);
 int mxc_hdmi_abort_stream(void);
-int mxc_hdmi_resume_stream(void);
 int mxc_hdmi_register_audio(struct snd_pcm_substream *substream);
 void mxc_hdmi_unregister_audio(struct snd_pcm_substream *substream);
 void hdmi_set_dvi_mode(unsigned int state);
