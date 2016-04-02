@@ -86,14 +86,22 @@ static struct notifier_block nb;
 static struct fb_info *hdmi_fb_info;
 
 void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi);
+static void hdmi_audio_resume_stream(struct snd_pcm_substream *substream);
+static void hdmi_audio_abort_stream(struct snd_pcm_substream *substream);
 
 
 static void hdmi_regenerator_wrapper(void)
 {
+	unsigned long flags;
+
 	if (hdmi_fb_info && hdmi_fb_info->mode) {
-		mxc_hdmi_abort_stream();
+		spin_lock_irqsave(&hdmi_audio_lock, flags);
+		if (hdmi_audio_stream_playback && !hdmi_abort_state)
+			hdmi_audio_abort_stream(hdmi_audio_stream_playback);
 		hdmi_clk_regenerator_update_pixel_clock(hdmi_fb_info->mode->pixclock, hdmi_fb_info);
-		mxc_hdmi_resume_stream();
+		if (hdmi_audio_stream_playback && hdmi_abort_state )
+			hdmi_audio_resume_stream(hdmi_audio_stream_playback);
+		spin_unlock_irqrestore(&hdmi_audio_lock, flags);
 	}
 }
 
@@ -170,18 +178,6 @@ static void hdmi_audio_abort_stream(struct snd_pcm_substream *substream)
 
 	snd_pcm_stream_unlock_irqrestore(substream, flags);
 }
-
-int mxc_hdmi_resume_stream(void)
-{
-	unsigned long flags;
-	spin_lock_irqsave(&hdmi_audio_lock, flags);
-	if (hdmi_audio_stream_playback && hdmi_abort_state)
-		hdmi_audio_resume_stream(hdmi_audio_stream_playback);
-	spin_unlock_irqrestore(&hdmi_audio_lock, flags);
-
-	return 0;
-}
-EXPORT_SYMBOL(mxc_hdmi_resume_stream);
 
 int mxc_hdmi_abort_stream(void)
 {
