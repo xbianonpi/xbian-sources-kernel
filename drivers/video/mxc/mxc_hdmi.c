@@ -1904,7 +1904,6 @@ static void mxc_hdmi_phy_disable(struct mxc_hdmi *hdmi)
 	if (!hdmi->phy_enabled)
 		return;
 
-	mxc_hdmi_abort_stream();
 	hdmi_disable_overflow_interrupts();
 
 	/* Setting PHY to reset status */
@@ -2489,7 +2488,6 @@ static void hotplug_worker(struct work_struct *work)
 		} else if (!(hdmi_phy_pol0 & hdmi->plug_mask)) {
 			/* Plugout event */
 			dev_dbg(&hdmi->pdev->dev, "EVENT=plugout\n");
-			mxc_hdmi_abort_stream();
 			mxc_hdmi_cable_disconnected(hdmi);
 #if defined(CONFIG_MXC_HDMI_CEC)
 			mxc_hdmi_cec_handle(0x0);
@@ -2812,13 +2810,10 @@ static int mxc_hdmi_fb_event(struct notifier_block *nb,
 
 			if (hdmi->hp_state > HDMI_HOTPLUG_DISCONNECTED)
 				mxc_hdmi_setup(hdmi, val);
-			hdmi_set_blank_state(1);
 
 		} else if (*((int *)event->data) != hdmi->blank) {
 			dev_dbg(&hdmi->pdev->dev,
 				"event=FB_EVENT_BLANK - BLANK\n");
-			mxc_hdmi_abort_stream();
-			hdmi_set_blank_state(0);
 
 			mxc_hdmi_phy_disable(hdmi);
 
