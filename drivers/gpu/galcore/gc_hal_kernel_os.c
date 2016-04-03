@@ -6883,8 +6883,8 @@ gckOS_WaitSignal(
             ? MAX_SCHEDULE_TIMEOUT
             : Wait * HZ / 1000;
 
-        DEFINE_SWAITER(wait);
-        swait_prepare_locked(&signal->obj.wait, &wait);
+        DECLARE_SWAITQUEUE(wait);
+        __prepare_to_swait(&signal->obj.wait, &wait);
 
         while (gcvTRUE)
         {
@@ -6919,7 +6919,7 @@ gckOS_WaitSignal(
             }
         }
 
-        swait_finish_locked(&signal->obj.wait, &wait);
+        __finish_swait(&signal->obj.wait, &wait);
     }
 
     raw_spin_unlock_irq(&signal->obj.wait.lock);
