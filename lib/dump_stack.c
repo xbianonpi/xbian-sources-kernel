@@ -33,7 +33,7 @@ asmlinkage __visible void dump_stack(void)
 	 * Permit this cpu to perform nested stack dumps while serialising
 	 * against other CPUs
 	 */
-	migrate_disable();
+	preempt_disable();
 
 retry:
 	cpu = smp_processor_id();
@@ -52,7 +52,7 @@ retry:
 	if (!was_locked)
 		atomic_set(&dump_lock, -1);
 
-	migrate_enable();
+	preempt_enable();
 }
 #else
 asmlinkage __visible void dump_stack(void)

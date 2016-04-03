@@ -2891,7 +2891,11 @@ static inline int __dev_xmit_skb(struct sk_buff *skb, struct Qdisc *q,
 	 * This permits __QDISC___STATE_RUNNING owner to get the lock more
 	 * often and dequeue packets faster.
 	 */
+#ifdef CONFIG_PREEMPT_RT_FULL
+	contended = true;
+#else
 	contended = qdisc_is_running(q);
+#endif
 	if (unlikely(contended))
 		spin_lock(&q->busylock);
 
@@ -2983,7 +2987,7 @@ static inline void xmit_rec_inc(void)
 	__this_cpu_inc(xmit_recursion);
 }
 
-static inline int xmit_rec_dec(void)
+static inline void xmit_rec_dec(void)
 {
 	__this_cpu_dec(xmit_recursion);
 }

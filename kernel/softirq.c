@@ -287,9 +287,9 @@ void __local_bh_disable_ip(unsigned long ip, unsigned int cnt)
 
 	if (preempt_count() == cnt) {
 #ifdef CONFIG_DEBUG_PREEMPT
-		current->preempt_disable_ip = get_parent_ip(CALLER_ADDR1);
+		current->preempt_disable_ip = get_lock_parent_ip();
 #endif
-		trace_preempt_off(CALLER_ADDR0, get_parent_ip(CALLER_ADDR1));
+		trace_preempt_off(CALLER_ADDR0, get_lock_parent_ip());
 	}
 }
 EXPORT_SYMBOL(__local_bh_disable_ip);
@@ -563,8 +563,10 @@ static void do_current_softirqs(void)
 			do_single_softirq(i);
 		}
 		softirq_clr_runner(i);
-		unlock_softirq(i);
 		WARN_ON(current->softirq_nestcnt != 1);
+		local_irq_enable();
+		unlock_softirq(i);
+		local_irq_disable();
 	}
 }
 
