@@ -591,6 +591,7 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 	clk_data.clk_num = ARRAY_SIZE(clk);
 	of_clk_add_provider(np, of_clk_src_onecell_get, &clk_data);
 
+	clk_register_clkdev(clk[IMX6QDL_CLK_GPT_3M], "gpt_3m", "imx-gpt.0");
 	clk_register_clkdev(clk[IMX6QDL_CLK_ENET_REF], "enet_ref", NULL);
 
 	if ((imx_get_soc_revision() != IMX_CHIP_REVISION_1_0) ||
@@ -598,6 +599,10 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 		imx_clk_set_parent(clk[IMX6QDL_CLK_LDB_DI0_SEL], clk[IMX6QDL_CLK_PLL5_VIDEO_DIV]);
 		imx_clk_set_parent(clk[IMX6QDL_CLK_LDB_DI1_SEL], clk[IMX6QDL_CLK_PLL5_VIDEO_DIV]);
 	}
+
+	imx_clk_set_rate(clk[IMX6QDL_CLK_PLL3_PFD1_540M], 540000000);
+	if (clk_on_imx6dl())
+		imx_clk_set_parent(clk[IMX6QDL_CLK_IPU1_SEL], clk[IMX6QDL_CLK_PLL3_PFD1_540M]);
 
 	imx_clk_set_parent(clk[IMX6QDL_CLK_IPU1_DI0_PRE_SEL], clk[IMX6QDL_CLK_PLL5_VIDEO_DIV]);
 	imx_clk_set_parent(clk[IMX6QDL_CLK_IPU1_DI1_PRE_SEL], clk[IMX6QDL_CLK_PLL5_VIDEO_DIV]);
@@ -608,8 +613,6 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 	imx_clk_set_parent(clk[IMX6QDL_CLK_IPU2_DI0_SEL], clk[IMX6QDL_CLK_IPU2_DI0_PRE]);
 	imx_clk_set_parent(clk[IMX6QDL_CLK_IPU2_DI1_SEL], clk[IMX6QDL_CLK_IPU2_DI1_PRE]);
 
-	imx_clk_set_rate(clk[IMX6QDL_CLK_PLL3_PFD1_540M], 540000000);
-	imx_clk_set_parent(clk[IMX6QDL_CLK_IPU1_SEL], clk[IMX6QDL_CLK_PLL3_PFD1_540M]);
 	imx_clk_set_parent(clk[IMX6QDL_CLK_AXI_ALT_SEL], clk[IMX6QDL_CLK_PLL3_PFD1_540M]);
 	imx_clk_set_parent(clk[IMX6QDL_CLK_AXI_SEL], clk[IMX6QDL_CLK_AXI_ALT_SEL]);
 	/* set epdc/pxp axi clock to 200Mhz */
@@ -626,6 +629,14 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 	 * So choose pll2_pfd2_396m as enfc_sel's parent.
 	 */
 	imx_clk_set_parent(clk[IMX6QDL_CLK_ENFC_SEL], clk[IMX6QDL_CLK_PLL2_PFD2_396M]);
+
+	for (i = 0; i < ARRAY_SIZE(clks_init_on); i++)
+		imx_clk_prepare_enable(clk[clks_init_on[i]]);
+
+	if (IS_ENABLED(CONFIG_USB_MXS_PHY)) {
+		imx_clk_prepare_enable(clk[IMX6QDL_CLK_USBPHY1_GATE]);
+		imx_clk_prepare_enable(clk[IMX6QDL_CLK_USBPHY2_GATE]);
+	}
 
 	/* gpu clock initilazation */
 	/*
@@ -671,14 +682,6 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 		imx_clk_set_parent(clk[IMX6QDL_CLK_LVDS1_SEL], clk[IMX6QDL_CLK_SATA_REF_100M]);
 
 	imx_register_uart_clocks(uart_clks);
-
-	for (i = 0; i < ARRAY_SIZE(clks_init_on); i++)
-		imx_clk_prepare_enable(clk[clks_init_on[i]]);
-
-	if (IS_ENABLED(CONFIG_USB_MXS_PHY)) {
-		imx_clk_prepare_enable(clk[IMX6QDL_CLK_USBPHY1_GATE]);
-		imx_clk_prepare_enable(clk[IMX6QDL_CLK_USBPHY2_GATE]);
-	}
 
 	imx_clk_set_parent(clk[IMX6QDL_CLK_VPU_AXI_SEL], clk[IMX6QDL_CLK_PLL2_PFD0_352M]);
 
