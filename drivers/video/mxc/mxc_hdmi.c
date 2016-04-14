@@ -2296,6 +2296,8 @@ static void mxc_hdmi_set_mode(struct mxc_hdmi *hdmi, int edid_status)
 		dev_dbg(&hdmi->pdev->dev, "%s: New video mode\n", __func__);
 	}
 
+	hdmi_set_cable_state(1);
+
 	console_lock();
 	fb_blank(hdmi->fbi, FB_BLANK_UNBLANK);
 	console_unlock();
@@ -2310,8 +2312,6 @@ static int mxc_hdmi_cable_connected(struct mxc_hdmi *hdmi)
 	u8 edid_old[HDMI_EDID_LEN];
 
 	dev_dbg(&hdmi->pdev->dev, "%s\n", __func__);
-
-	hdmi_set_cable_state(1);
 
 	hdmi->hp_state = HDMI_HOTPLUG_CONNECTED_NO_EDID;
 	memcpy(edid_old, hdmi->edid, HDMI_EDID_LEN);
