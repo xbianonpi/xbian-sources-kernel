@@ -221,9 +221,13 @@ int mxc_hdmi_register_audio(struct snd_pcm_substream *substream)
 		if (hdmi_audio_stream_playback) {
 			pr_err("%s unconsist hdmi auido stream!\n", __func__);
 			ret = -EINVAL;
+		} else if (hdmi_abort_state) {
+			pr_err("%s audio disabled for this mode!\n", __func__);
+			ret = -EINVAL;
+		} else {
+			hdmi_audio_stream_playback = substream;
+			hdmi_abort_state = !hdmi_blank_state;
 		}
-		hdmi_audio_stream_playback = substream;
-		hdmi_abort_state = !hdmi_blank_state;
 		spin_unlock_irqrestore(&hdmi_audio_lock, flags1);
 	} else
 		ret = -EINVAL;
@@ -519,8 +523,11 @@ static void hdmi_set_clk_regenerator(void)
 	if (clk_cts == 0 && hdmi_compute_cts_n(sample_rate, pixel_clk_rate, &clk_n, &clk_cts))
 		pr_debug("%s: pixel clock not supported - using fallback calculation.\n", __func__);
 	else if (clk_cts == 0) {
-		pr_debug("%s: cts/n fallback calculation out of safe values\n", __func__);
+		pr_err("%s: cts/n fallback calculation out of safe values, disabling hdmi audio\n", __func__);
+
 		mxc_hdmi_abort_stream();
+		if (!hdmi_audio_stream_playback)
+			hdmi_abort_state = 1;
 		return;
 	}
 
@@ -533,6 +540,9 @@ static void hdmi_set_clk_regenerator(void)
 
 	hdmi_set_clock_regenerator_cts(clk_cts);
 	hdmi_set_clock_regenerator_n(clk_n);
+
+	if (hdmi_abort_state && !hdmi_audio_stream_playback)
+		hdmi_abort_state = 0;
 }
 
 static int hdmi_core_get_of_property(struct platform_device *pdev)
