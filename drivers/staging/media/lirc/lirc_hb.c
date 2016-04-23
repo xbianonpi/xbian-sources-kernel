@@ -672,12 +672,12 @@ module_param(gpio_in_pin, int, S_IRUGO);
 MODULE_PARM_DESC(gpio_in_pin, "GPIO input pin number of the BCM processor."
 		 " Valid pin numbers are: 1, 73, 72, 71, 70, 194, 195, 67, default 72");
 
-module_param(sense, bool, S_IRUGO);
+module_param(sense, int, S_IRUGO);
 MODULE_PARM_DESC(sense, "Override autodetection of IR receiver circuit"
 		 " (0 = active high, 1 = active low )");
 
-module_param(softcarrier, bool, S_IRUGO);
+module_param(softcarrier, int, S_IRUGO);
 MODULE_PARM_DESC(softcarrier, "Software carrier (0 = off, 1 = on, default on)");
 
-module_param(debug, bool, S_IRUGO | S_IWUSR);
+module_param(debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Enable debugging messages");
