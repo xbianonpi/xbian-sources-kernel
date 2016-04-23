@@ -980,13 +980,13 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_LICENSE("GPL");
 MODULE_DEVICE_TABLE(usb, usb_remote_table);
 
-module_param(debug, bool, S_IRUGO | S_IWUSR);
+module_param(debug, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Debug enabled or not (default: 0)");
 
 module_param(mask, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(mask, "Set channel acceptance bit mask (default: 0xFFFF)");
 
-module_param(unique, bool, S_IRUGO | S_IWUSR);
+module_param(unique, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(unique, "Enable channel-specific codes (default: 0)");
 
 module_param(repeat, int, S_IRUGO | S_IWUSR);
