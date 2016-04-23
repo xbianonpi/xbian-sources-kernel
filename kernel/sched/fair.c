@@ -4931,10 +4931,39 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 	int want_affine = 0;
 	int sync = wake_flags & WF_SYNC;
 
+	int _cpu;
+	u64 oldest_idle_stamp = 0xfffffffffffffff;
+	int oldest_idle_stamp_cpu;
+
 	if (sd_flag & SD_BALANCE_WAKE)
 		want_affine = !wake_wide(p) && cpumask_test_cpu(cpu, tsk_cpus_allowed(p));
 
 	rcu_read_lock();
+
+	if (!cpu_rq(prev_cpu)->nr_running)
+	{
+		new_cpu = prev_cpu;
+		goto unlock;
+	}
+
+	for_each_online_cpu(_cpu)
+	{
+		if (!cpumask_test_cpu(_cpu, tsk_cpus_allowed(p)) ||
+			cpu_rq(_cpu)->nr_running) continue;
+
+		if (cpu_rq(_cpu)->idle_stamp < oldest_idle_stamp)
+		{
+			oldest_idle_stamp = cpu_rq(_cpu)->idle_stamp;
+			oldest_idle_stamp_cpu = _cpu;
+		}
+	}
+
+	if (oldest_idle_stamp != 0xfffffffffffffff)
+	{
+		new_cpu = oldest_idle_stamp_cpu;
+		goto unlock;
+	}
+
 	for_each_domain(cpu, tmp) {
 		if (!(tmp->flags & SD_LOAD_BALANCE))
 			break;
@@ -4999,6 +5028,7 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 		}
 		/* while loop will break here if sd == NULL */
 	}
+unlock:
 	rcu_read_unlock();
 
 	return new_cpu;
@@ -6003,6 +6033,8 @@ struct sg_lb_stats {
 	unsigned int sum_nr_running; /* Nr tasks running in the group */
 	unsigned int idle_cpus;
 	unsigned int group_weight;
+	unsigned long min_load;
+	unsigned long max_load;
 	enum group_type group_type;
 	int group_no_capacity;
 #ifdef CONFIG_NUMA_BALANCING
@@ -6302,6 +6334,8 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 			bool *overload)
 {
 	unsigned long load;
+	unsigned long min_load = ULONG_MAX;
+	unsigned long max_load = 0UL;
 	int i;
 
 	memset(sgs, 0, sizeof(*sgs));
@@ -6314,6 +6348,11 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 			load = target_load(i, load_idx);
 		else
 			load = source_load(i, load_idx);
+
+		if (load < min_load)
+			min_load = load;
+		if(load > max_load)
+			max_load = load;
 
 		sgs->group_load += load;
 		sgs->group_util += cpu_util(i);
@@ -6334,6 +6373,9 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 	/* Adjust by relative CPU capacity of the group */
 	sgs->group_capacity = group->sgc->capacity;
 	sgs->avg_load = (sgs->group_load*SCHED_CAPACITY_SCALE) / sgs->group_capacity;
+
+	sgs->min_load = min_load;
+	sgs->max_load = max_load;
 
 	if (sgs->sum_nr_running)
 		sgs->load_per_task = sgs->sum_weighted_load / sgs->sum_nr_running;
@@ -6364,14 +6406,15 @@ static bool update_sd_pick_busiest(struct lb_env *env,
 {
 	struct sg_lb_stats *busiest = &sds->busiest_stat;
 
-	if (sgs->group_type > busiest->group_type)
+	/* Not sure we want to keep that or not */
+	/*if (sgs->group_type > busiest->group_type)
+		return true;*/
+
+	if (sgs->min_load <= busiest->min_load)
 		return true;
 
-	if (sgs->group_type < busiest->group_type)
-		return false;
-
-	if (sgs->avg_load <= busiest->avg_load)
-		return false;
+	if (sgs->group_type == group_imbalanced)
+		return true;
 
 	/* This is the busiest node in its class. */
 	if (!(env->sd->flags & SD_ASYM_PACKING))
@@ -6624,69 +6667,19 @@ void fix_small_imbalance(struct lb_env *env, struct sd_lb_stats *sds)
  */
 static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *sds)
 {
-	unsigned long max_pull, load_above_capacity = ~0UL;
 	struct sg_lb_stats *local, *busiest;
 
 	local = &sds->local_stat;
 	busiest = &sds->busiest_stat;
 
-	if (busiest->group_type == group_imbalanced) {
-		/*
-		 * In the group_imb case we cannot rely on group-wide averages
-		 * to ensure cpu-load equilibrium, look at wider averages. XXX
-		 */
-		busiest->load_per_task =
-			min(busiest->load_per_task, sds->avg_load);
-	}
-
-	/*
-	 * In the presence of smp nice balancing, certain scenarios can have
-	 * max load less than avg load(as we skip the groups at or below
-	 * its cpu_capacity, while calculating max_load..)
-	 */
-	if (busiest->avg_load <= sds->avg_load ||
-	    local->avg_load >= sds->avg_load) {
+	if(local->min_load >= busiest->max_load) {
 		env->imbalance = 0;
-		return fix_small_imbalance(env, sds);
+	}
+	else {
+		env->imbalance = (busiest->max_load - local->min_load) / 2;
 	}
 
-	/*
-	 * If there aren't any idle cpus, avoid creating some.
-	 */
-	if (busiest->group_type == group_overloaded &&
-	    local->group_type   == group_overloaded) {
-		load_above_capacity = busiest->sum_nr_running *
-					SCHED_LOAD_SCALE;
-		if (load_above_capacity > busiest->group_capacity)
-			load_above_capacity -= busiest->group_capacity;
-		else
-			load_above_capacity = ~0UL;
-	}
-
-	/*
-	 * We're trying to get all the cpus to the average_load, so we don't
-	 * want to push ourselves above the average load, nor do we wish to
-	 * reduce the max loaded cpu below the average load. At the same time,
-	 * we also don't want to reduce the group load below the group capacity
-	 * (so that we can implement power-savings policies etc). Thus we look
-	 * for the minimum possible imbalance.
-	 */
-	max_pull = min(busiest->avg_load - sds->avg_load, load_above_capacity);
-
-	/* How much load to actually move to equalise the imbalance */
-	env->imbalance = min(
-		max_pull * busiest->group_capacity,
-		(sds->avg_load - local->avg_load) * local->group_capacity
-	) / SCHED_CAPACITY_SCALE;
-
-	/*
-	 * if *imbalance is less than the average load per runnable task
-	 * there is no guarantee that any tasks will be moved so we'll have
-	 * a think about bumping its value to force at least one task to be
-	 * moved
-	 */
-	if (env->imbalance < busiest->load_per_task)
-		return fix_small_imbalance(env, sds);
+	return;
 }
 
 /******* find_busiest_group() helpers end here *********************/
@@ -6748,39 +6741,13 @@ static struct sched_group *find_busiest_group(struct lb_env *env)
 	    busiest->group_no_capacity)
 		goto force_balance;
 
-	/*
-	 * If the local group is busier than the selected busiest group
-	 * don't try and pull any tasks.
-	 */
-	if (local->avg_load >= busiest->avg_load)
+	if(local->min_load < busiest->min_load)
+	{
+		goto force_balance;
+	}
+	else
+	{
 		goto out_balanced;
-
-	/*
-	 * Don't pull any tasks if this group is already above the domain
-	 * average load.
-	 */
-	if (local->avg_load >= sds.avg_load)
-		goto out_balanced;
-
-	if (env->idle == CPU_IDLE) {
-		/*
-		 * This cpu is idle. If the busiest group is not overloaded
-		 * and there is no imbalance between this and busiest group
-		 * wrt idle cpus, it is balanced. The imbalance becomes
-		 * significant if the diff is greater than 1 otherwise we
-		 * might end up to just move the imbalance on another group
-		 */
-		if ((busiest->group_type != group_overloaded) &&
-				(local->idle_cpus <= (busiest->idle_cpus + 1)))
-			goto out_balanced;
-	} else {
-		/*
-		 * In the CPU_NEWLY_IDLE, CPU_NOT_IDLE cases, use
-		 * imbalance_pct to be conservative.
-		 */
-		if (100 * busiest->avg_load <=
-				env->sd->imbalance_pct * local->avg_load)
-			goto out_balanced;
 	}
 
 force_balance:
@@ -6910,36 +6877,7 @@ static int active_load_balance_cpu_stop(void *data);
 
 static int should_we_balance(struct lb_env *env)
 {
-	struct sched_group *sg = env->sd->groups;
-	struct cpumask *sg_cpus, *sg_mask;
-	int cpu, balance_cpu = -1;
-
-	/*
-	 * In the newly idle case, we will allow all the cpu's
-	 * to do the newly idle load balance.
-	 */
-	if (env->idle == CPU_NEWLY_IDLE)
-		return 1;
-
-	sg_cpus = sched_group_cpus(sg);
-	sg_mask = sched_group_mask(sg);
-	/* Try to find first idle cpu */
-	for_each_cpu_and(cpu, sg_cpus, env->cpus) {
-		if (!cpumask_test_cpu(cpu, sg_mask) || !idle_cpu(cpu))
-			continue;
-
-		balance_cpu = cpu;
-		break;
-	}
-
-	if (balance_cpu == -1)
-		balance_cpu = group_balance_cpu(sg);
-
-	/*
-	 * First idle cpu or the first cpu(busiest) in this sched group
-	 * is eligible for doing load balancing at this and above domains.
-	 */
-	return balance_cpu == env->dst_cpu;
+	return 1;
 }
 
 /*
