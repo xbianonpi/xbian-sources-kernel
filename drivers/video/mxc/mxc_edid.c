@@ -861,14 +861,15 @@ int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 EXPORT_SYMBOL(mxc_edid_read);
 
 const struct fb_videomode *mxc_fb_find_nearest_mode(const struct fb_videomode *mode,
-						    struct list_head *head, bool relax)
+						    struct list_head *head)
 {
 	struct list_head *pos;
 	struct fb_modelist *modelist;
 	struct fb_videomode *cmode;
 	static struct fb_videomode *best;
 	static u32 diff, diff_refresh;
-	u32 mask = relax ? FB_VMODE_MASK_SIMPLE | FB_VMODE_ASPECT_MASK : ~0;
+	static int relax;
+	u32 mask = relax == 2 ? FB_VMODE_MASK_SIMPLE : (relax ? FB_VMODE_MASK_SIMPLE | FB_VMODE_ASPECT_MASK : ~0);
 
 	if (!relax) {
 		diff = -1;
@@ -900,8 +901,10 @@ const struct fb_videomode *mxc_fb_find_nearest_mode(const struct fb_videomode *m
 		}
 	}
 
-	if (!relax && (diff_refresh || diff || !best))
-		mxc_fb_find_nearest_mode(mode, head, true);
+	if (relax++ < 2 && (diff_refresh || diff || !best))
+		mxc_fb_find_nearest_mode(mode, head);
+
+	relax--;
 
 	return best;
 }
