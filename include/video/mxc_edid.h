@@ -132,7 +132,7 @@ int mxc_edid_read(struct i2c_adapter *adp, unsigned short addr,
 int mxc_edid_parse_ext_blk(unsigned char *edid, struct mxc_edid_cfg *cfg,
 	struct fb_monspecs *specs);
 const struct fb_videomode *mxc_fb_find_nearest_mode(const struct fb_videomode *mode,
-	struct list_head *head, bool relax);
+	struct list_head *head);
 int mxc_edid_fb_mode_is_equal(bool use_aspect, const struct fb_videomode *mode1,
 	const struct fb_videomode *mode2, u32 mode_mask);
 int mxc_fb_mode_is_equal_res(const struct fb_videomode *mode1,
