@@ -145,7 +145,7 @@
 	status = "okay";
 };
 
-&hdmi {
+&hdmi_core {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_hdmi>;
 	ddc-i2c-bus = <&i2c2>;
