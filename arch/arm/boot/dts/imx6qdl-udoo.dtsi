@@ -214,7 +214,7 @@
 &dcic2 {
 	dcic_id = <1>;
 	dcic_mux = "dcic-lvds1";
-	status = "okay";
+	status = "disabled";
 };
 
 &gpc { // General power controller
@@ -266,9 +266,9 @@
 				vsync-len = <2>;
 			};
 			
-			timing2: 1366x768 {	// 15.6" display
+			timing2: 1360x768 {	// 15.6" display
 				clock-frequency = <76000000>;
-				hactive = <1366>;
+				hactive = <1360>;	// IPU needs x and y modulo 8
 				vactive = <768>;
 				hback-porch = <220>;
 				hfront-porch = <40>;
