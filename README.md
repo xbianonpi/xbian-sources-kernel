@@ -12,7 +12,7 @@ Currently used kernel releases:
 - RPI / RPI2 / RPI3 - **linux-4.1.y** (discontinued)<hr>
     https://github.com/xbianonpi/xbian-sources-kernel/tree/rpi-4.1.y
 
-- iMX6 - **linux-4.3.y** <hr>
+- iMX6 - **linux-4.3.y** (discontinued)<hr>
     https://github.com/xbianonpi/xbian-sources-kernel/tree/imx6-4.3.y <br>
     https://github.com/xbianonpi/xbian-sources-kernel/tree/uboot-imx6
 
