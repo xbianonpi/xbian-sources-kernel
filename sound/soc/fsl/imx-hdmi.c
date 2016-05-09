@@ -29,7 +29,6 @@ static struct snd_soc_dai_link imx_hdmi_dai_link = {
 	.codec_dai_name = "hdmi-hifi",
 	.codec_name = "hdmi-audio-codec",
 	.platform_name = "imx-hdmi-audio",
-	.ignore_pmdown_time = 1,
 };
 
 static struct snd_soc_card snd_soc_card_imx_hdmi = {

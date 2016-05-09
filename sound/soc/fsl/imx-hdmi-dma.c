@@ -952,13 +952,13 @@ static int hdmi_dma_trigger(struct snd_pcm_substream *substream, int cmd)
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
+	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		if (!check_hdmi_state())
 			return 0;
 		hdmi_dma_trigger_init(substream, priv);
 
 		dumpregs(dev);
 
-	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		priv->tx_active = true;
 		hdmi_audio_writeb(AHB_DMA_START, START, 0x1);
 		hdmi_dma_irq_set(false);
