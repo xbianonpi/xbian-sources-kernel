@@ -579,7 +579,6 @@ void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi)
 void hdmi_set_dma_mode(unsigned int dma_running)
 {
 	hdmi_dma_running = dma_running;
-	hdmi_set_clk_regenerator();
 }
 EXPORT_SYMBOL(hdmi_set_dma_mode);
 
