@@ -443,8 +443,11 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 		SIGNAL_FREE_ARB = SIGNAL_FREE_TIME_NORMAL;
 
 		ret = wait_event_interruptible_timeout(hdmi_cec_qs, !((val = hdmi_readb(HDMI_CEC_CTRL)) & 0x01), msecs_to_jiffies(timeout));
-		if (ret == -ERESTARTSYS)
+		if (ret == -ERESTARTSYS) {
+			hdmi_cec_root.write_busy = false;
+			wake_up(&hdmi_cec_qs);
 			break;
+		}
 		pr_debug("%s:  wait_event ret %d\n", __func__, ret);
 		if (hdmi_cec_root.send_error > 5 || ret < 2) {
 			hdmi_writeb(0, HDMI_CEC_TX_CNT);
