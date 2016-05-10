@@ -1007,7 +1007,7 @@ static struct snd_pcm_hardware snd_imx_hardware = {
 	.period_bytes_min = HDMI_DMA_PERIOD_BYTES / 2,
 	.period_bytes_max = HDMI_DMA_PERIOD_BYTES / 2,
 	.periods_min = 8,
-	.periods_max = HDMI_DMA_BUF_SIZE / HDMI_DMA_PERIOD_BYTES,
+	.periods_max = 8,
 	.fifo_size = 0,
 };
 
@@ -1188,7 +1188,6 @@ static int imx_soc_platform_probe(struct platform_device *pdev)
 	case 0x0a:
 		snd_imx_hardware.period_bytes_max = HDMI_DMA_PERIOD_BYTES / 4;
 		snd_imx_hardware.period_bytes_min = HDMI_DMA_PERIOD_BYTES / 4;
-		snd_imx_hardware.periods_max = HDMI_DMA_BUF_SIZE / (HDMI_DMA_PERIOD_BYTES / 2);
 		break;
 	default:
 		break;
