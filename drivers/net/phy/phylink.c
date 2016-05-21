@@ -429,7 +429,7 @@ static int phylink_bringup_phy(struct phylink *pl, struct phy_device *phy)
 	phy->phy_link_change = phylink_phy_change;
 
 	netdev_info(pl->netdev,
-		    "PHY [%s] driver [%s]\n", dev_name(&phy->dev),
+		    "PHY [%s] driver [%s]\n", dev_name(&phy->mdio.dev),
 		    phy->drv->name);
 
 	mutex_lock(&pl->state_mutex);
@@ -926,8 +926,8 @@ static int phylink_mii_read(struct phylink *pl, unsigned int phy_id,
 	struct phylink_link_state state;
 	int val = 0xffff;
 
-	if (pl->phydev && pl->phydev->addr != phy_id)
-		return mdiobus_read(pl->phydev->bus, phy_id, reg);
+	if (pl->phydev && pl->phydev->mdio.addr != phy_id)
+		return mdiobus_read(pl->phydev->mdio.bus, phy_id, reg);
 
 	if (!pl->phydev && phy_id != 0)
 		return val;
@@ -939,12 +939,12 @@ static int phylink_mii_read(struct phylink *pl, unsigned int phy_id,
 		break;
 
 	case MLO_AN_PHY:
-		val = mdiobus_read(pl->phydev->bus, phy_id, reg);
+		val = mdiobus_read(pl->phydev->mdio.bus, phy_id, reg);
 		break;
 
 	case MLO_AN_SGMII:
 		if (pl->phydev) {
-			val = mdiobus_read(pl->phydev->bus, pl->phydev->addr,
+			val = mdiobus_read(pl->phydev->mdio.bus, pl->phydev->mdio.addr,
 					   reg);
 			break;
 		}
@@ -964,8 +964,8 @@ static int phylink_mii_read(struct phylink *pl, unsigned int phy_id,
 static void phylink_mii_write(struct phylink *pl, unsigned int phy_id,
 			      unsigned int reg, unsigned int val)
 {
-	if (pl->phydev && pl->phydev->addr != phy_id) {
-		mdiobus_write(pl->phydev->bus, phy_id, reg, val);
+	if (pl->phydev && pl->phydev->mdio.addr != phy_id) {
+		mdiobus_write(pl->phydev->mdio.bus, phy_id, reg, val);
 		return;
 	}
 
@@ -977,12 +977,12 @@ static void phylink_mii_write(struct phylink *pl, unsigned int phy_id,
 		break;
 
 	case MLO_AN_PHY:
-		mdiobus_write(pl->phydev->bus, pl->phydev->addr, reg, val);
+		mdiobus_write(pl->phydev->mdio.bus, pl->phydev->mdio.addr, reg, val);
 		break;
 
 	case MLO_AN_SGMII:
 		if (pl->phydev) {
-			mdiobus_write(pl->phydev->bus, phy_id, reg, val);
+			mdiobus_write(pl->phydev->mdio.bus, phy_id, reg, val);
 			break;
 		}
 		/* No phy, fall through to reading the MAC end */
@@ -1000,7 +1000,7 @@ int phylink_mii_ioctl(struct phylink *pl, struct ifreq *ifr, int cmd)
 
 	switch (cmd) {
 	case SIOCGMIIPHY:
-		mii_data->phy_id = pl->phydev ? pl->phydev->addr : 0;
+		mii_data->phy_id = pl->phydev ? pl->phydev->mdio.addr : 0;
 		/* fallthrough */
 
 	case SIOCGMIIREG:

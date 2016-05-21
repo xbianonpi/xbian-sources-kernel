@@ -5470,9 +5470,7 @@ OnError:
             /* Get the user pages. */
             down_read(&current->mm->mmap_sem);
 
-            result = get_user_pages(current,
-                    current->mm,
-                    memory & PAGE_MASK,
+            result = get_user_pages(memory & PAGE_MASK,
                     pageCount,
                     1,
                     0,
@@ -5496,7 +5494,7 @@ OnError:
                             break;
                         }
 
-                        page_cache_release(pages[i]);
+                        put_page(pages[i]);
                         pages[i] = gcvNULL;
                     }
 
@@ -5731,7 +5729,7 @@ OnError:
                 {
                     break;
                 }
-                page_cache_release(pages[i]);
+                put_page(pages[i]);
             }
         }
 
@@ -5923,7 +5921,7 @@ OnError:
                      SetPageDirty(pages[i]);
                 }
 
-                page_cache_release(pages[i]);
+                put_page(pages[i]);
             }
         }
 

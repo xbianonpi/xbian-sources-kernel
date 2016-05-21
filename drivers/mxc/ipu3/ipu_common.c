@@ -151,14 +151,18 @@ static int ipu_clk_setup_enable(struct ipu_soc *ipu,
 	pixel_clk_1_sel[3] += pdata->id;
 	pixel_clk_0_div[3] += pdata->id;
 	pixel_clk_1_div[3] += pdata->id;
+
+	ipu->ipu_pixel_clk_sel = (char**)kzalloc(ARRAY_SIZE(ipu_pixel_clk_sel) * sizeof(char *), GFP_KERNEL);
 	for (i = 0; i < ARRAY_SIZE(ipu_pixel_clk_sel); i++) {
-		pclk_sel = ipu_pixel_clk_sel[i];
+		ipu->ipu_pixel_clk_sel[i] = kzalloc(strlen(ipu_pixel_clk_sel[i]) * sizeof(char) + 1, GFP_KERNEL);
+		strcpy(ipu->ipu_pixel_clk_sel[i], ipu_pixel_clk_sel[i]);
+		pclk_sel = ipu->ipu_pixel_clk_sel[i];
 		pclk_sel[3] += pdata->id;
 	}
 	dev_dbg(ipu->dev, "ipu_clk = %lu\n", clk_get_rate(ipu->ipu_clk));
 
 	clk = clk_register_mux_pix_clk(ipu->dev, pixel_clk_0_sel,
-			(const char **)ipu_pixel_clk_sel,
+			(const char **)ipu->ipu_pixel_clk_sel,
 			ARRAY_SIZE(ipu_pixel_clk_sel),
 			0, pdata->id, 0, 0);
 	if (IS_ERR(clk)) {
@@ -167,7 +171,7 @@ static int ipu_clk_setup_enable(struct ipu_soc *ipu,
 	}
 	ipu->pixel_clk_sel[0] = clk;
 	clk = clk_register_mux_pix_clk(ipu->dev, pixel_clk_1_sel,
-			(const char **)ipu_pixel_clk_sel,
+			(const char **)ipu->ipu_pixel_clk_sel,
 			ARRAY_SIZE(ipu_pixel_clk_sel),
 			0, pdata->id, 1, 0);
 	if (IS_ERR(clk)) {
