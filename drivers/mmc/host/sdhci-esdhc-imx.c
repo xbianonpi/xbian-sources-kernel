@@ -952,7 +952,7 @@ static void esdhc_reset(struct sdhci_host *host, u8 mask)
 static void esdhc_hw_reset(struct sdhci_host *host)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
-	struct pltfm_imx_data *imx_data = pltfm_host->priv;
+	struct pltfm_imx_data *imx_data = sdhci_pltfm_priv(pltfm_host);
 	u16 ctrl;
 
 	sdhci_reset(host, SDHCI_RESET_ALL);
