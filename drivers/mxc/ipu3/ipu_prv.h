@@ -82,6 +82,8 @@ struct ipu_soc {
 	struct clk *pixel_clk_sel[2];
 	struct clk *csi_clk[2];
 
+	char **ipu_pixel_clk_sel;
+
 	/*irq*/
 	int irq_sync;
 	int irq_err;
