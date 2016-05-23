@@ -3501,8 +3501,10 @@ static long mxc_ipu_ioctl(struct file *file,
 			if (mem == NULL)
 				return -ENOMEM;
 
-			if (get_user(size, argp))
+			if (get_user(size, argp)) {
+				kfree(mem);
 				return -EFAULT;
+			}
 
 			mem->size = PAGE_ALIGN(size);
 
