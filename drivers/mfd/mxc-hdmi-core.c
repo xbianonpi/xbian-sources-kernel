@@ -88,6 +88,7 @@ static struct fb_info *hdmi_fb_info;
 void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi);
 static void hdmi_audio_resume_stream(struct snd_pcm_substream *substream);
 static void hdmi_audio_abort_stream(struct snd_pcm_substream *substream);
+static void hdmi_set_clk_regenerator(void);
 
 
 static void hdmi_regenerator_wrapper(void)
@@ -229,6 +230,7 @@ int mxc_hdmi_register_audio(struct snd_pcm_substream *substream)
 			hdmi_abort_state = !hdmi_blank_state;
 		}
 		spin_unlock_irqrestore(&hdmi_audio_lock, flags1);
+		hdmi_set_clk_regenerator();
 	} else
 		ret = -EINVAL;
 
