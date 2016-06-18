@@ -230,7 +230,6 @@ int mxc_hdmi_register_audio(struct snd_pcm_substream *substream)
 			hdmi_abort_state = !hdmi_blank_state;
 		}
 		spin_unlock_irqrestore(&hdmi_audio_lock, flags1);
-		hdmi_set_clk_regenerator();
 	} else
 		ret = -EINVAL;
 
@@ -581,6 +580,7 @@ void hdmi_clk_regenerator_update_pixel_clock(u32 pixclock, struct fb_info *fbi)
 void hdmi_set_dma_mode(unsigned int dma_running)
 {
 	hdmi_dma_running = dma_running;
+	hdmi_set_clk_regenerator();
 }
 EXPORT_SYMBOL(hdmi_set_dma_mode);
 
