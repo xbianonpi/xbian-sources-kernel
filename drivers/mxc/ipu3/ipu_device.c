@@ -485,7 +485,6 @@ cs_t colorspaceofpixel(int fmt)
 }
 EXPORT_SYMBOL_GPL(colorspaceofpixel);
 
-inline
 int need_csc(int ifmt, int ofmt)
 {
 	cs_t ics, ocs;
@@ -502,31 +501,26 @@ int need_csc(int ifmt, int ofmt)
 }
 EXPORT_SYMBOL_GPL(need_csc);
 
-inline
 static int soc_max_in_width(u32 is_vdoa)
 {
 	return is_vdoa ? 8192 : 4096;
 }
 
-inline
 static int soc_max_vdi_in_width(void)
 {
 	return IPU_MAX_VDI_IN_WIDTH;
 }
-inline
 static int soc_max_in_height(void)
 {
 	return 4096;
 }
 
-inline
 static int soc_max_out_width(void)
 {
 	/* mx51/mx53/mx6q is 1024*/
 	return 1024;
 }
 
-inline
 static int soc_max_out_height(void)
 {
 	/* mx51/mx53/mx6q is 1024*/
@@ -865,7 +859,7 @@ static int update_split_setting(struct ipu_task_entry *t, bool vdi_split)
 		ret = ipu_calc_stripes_sizes(iw,
 				ow,
 				max_width,
-				0,/*no overlap*/ /* 32bit for fractional*/
+				(((unsigned long long)1) << 32), /* 32bit for fractional*/
 				1, /* equal stripes */
 				t->input.format,
 				t->output.format,
@@ -913,7 +907,7 @@ static int update_split_setting(struct ipu_task_entry *t, bool vdi_split)
 		ret = ipu_calc_stripes_sizes(ih,
 				oh,
 				soc_max_out_height(),
-				0,/*no overlap*/ /* 32bit for fractional*/
+				(((unsigned long long)1) << 32), /* 32bit for fractional*/
 				0x1 | 0x2, /* equal stripes and vertical */
 				t->input.format,
 				t->output.format,
