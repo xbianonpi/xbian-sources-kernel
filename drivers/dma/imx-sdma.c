@@ -933,8 +933,8 @@ static int sdma_load_context(struct sdma_channel *sdmac)
 		context->gReg[1] = sdmac->event_mask[0];
 		context->gReg[2] = sdmac->per_addr;
 		context->gReg[6] = sdmac->shp_addr;
-		context->gReg[7] = sdmac->watermark_level;
 	}
+	context->gReg[7] = sdmac->watermark_level;
 
 	bd0->mode.command = C0_SETDM;
 	bd0->mode.status = BD_DONE | BD_INTR | BD_WRAP | BD_EXTD;
