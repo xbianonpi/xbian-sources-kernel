@@ -714,7 +714,7 @@ struct intel_uncore {
 		struct drm_i915_private *i915;
 		enum forcewake_domain_id id;
 		unsigned wake_count;
-		struct hrtimer timer;
+		struct timer_list timer;
 		i915_reg_t reg_set;
 		u32 val_set;
 		u32 val_clear;

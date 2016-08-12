@@ -62,8 +62,7 @@ static void tick_do_update_jiffies64(ktime_t now)
 		return;
 
 	/* Reevalute with jiffies_lock held */
-	raw_spin_lock(&jiffies_lock);
-	write_seqcount_begin(&jiffies_seq);
+	write_seqlock(&jiffies_lock);
 
 	delta = ktime_sub(now, last_jiffies_update);
 	if (delta.tv64 >= tick_period.tv64) {
@@ -86,12 +85,10 @@ static void tick_do_update_jiffies64(ktime_t now)
 		/* Keep the tick_next_period variable up to date */
 		tick_next_period = ktime_add(last_jiffies_update, tick_period);
 	} else {
-		write_seqcount_end(&jiffies_seq);
-		raw_spin_unlock(&jiffies_lock);
+		write_sequnlock(&jiffies_lock);
 		return;
 	}
-	write_seqcount_end(&jiffies_seq);
-	raw_spin_unlock(&jiffies_lock);
+	write_sequnlock(&jiffies_lock);
 	update_wall_time();
 }
 
@@ -102,14 +99,12 @@ static ktime_t tick_init_jiffy_update(void)
 {
 	ktime_t period;
 
-	raw_spin_lock(&jiffies_lock);
-	write_seqcount_begin(&jiffies_seq);
+	write_seqlock(&jiffies_lock);
 	/* Did we start the jiffies update yet ? */
 	if (last_jiffies_update.tv64 == 0)
 		last_jiffies_update = tick_next_period;
 	period = last_jiffies_update;
-	write_seqcount_end(&jiffies_seq);
-	raw_spin_unlock(&jiffies_lock);
+	write_sequnlock(&jiffies_lock);
 	return period;
 }
 
@@ -217,7 +212,6 @@ static void nohz_full_kick_func(struct irq_work *work)
 
 static DEFINE_PER_CPU(struct irq_work, nohz_full_kick_work) = {
 	.func = nohz_full_kick_func,
-	.flags = IRQ_WORK_HARD_IRQ,
 };
 
 /*
@@ -676,10 +670,10 @@ static ktime_t tick_nohz_stop_sched_tick(struct tick_sched *ts,
 
 	/* Read jiffies and the time when jiffies were updated last */
 	do {
-		seq = read_seqcount_begin(&jiffies_seq);
+		seq = read_seqbegin(&jiffies_lock);
 		basemono = last_jiffies_update.tv64;
 		basejiff = jiffies;
-	} while (read_seqcount_retry(&jiffies_seq, seq));
+	} while (read_seqretry(&jiffies_lock, seq));
 	ts->last_jiffies = basejiff;
 
 	if (rcu_needs_cpu(basemono, &next_rcu) ||
@@ -706,12 +700,6 @@ static ktime_t tick_nohz_stop_sched_tick(struct tick_sched *ts,
 	delta = next_tick - basemono;
 	if (delta <= (u64)TICK_NSEC) {
 		tick.tv64 = 0;
-
-		/*
-		 * Tell the timer code that the base is not idle, i.e. undo
-		 * the effect of get_next_timer_interrupt().
-		 */
-		timer_clear_idle();
 		/*
 		 * We've not stopped the tick yet, and there's a timer in the
 		 * next period, so no point in stopping it either, bail.
@@ -820,12 +808,6 @@ static void tick_nohz_restart_sched_tick(struct tick_sched *ts, ktime_t now, int
 	tick_do_update_jiffies64(now);
 	update_cpu_load_nohz(active);
 
-	/*
-	 * Clear the timer idle flag, so we avoid IPIs on remote queueing and
-	 * the clock forward checks in the enqueue path.
-	 */
-	timer_clear_idle();
-
 	calc_load_exit_idle();
 	touch_softlockup_watchdog_sched();
 	/*
@@ -879,7 +861,14 @@ static bool can_stop_idle_tick(int cpu, struct tick_sched *ts)
 		return false;
 
 	if (unlikely(local_softirq_pending() && cpu_online(cpu))) {
-		softirq_check_pending_idle();
+		static int ratelimit;
+
+		if (ratelimit < 10 &&
+		    (local_softirq_pending() & SOFTIRQ_STOP_IDLE_MASK)) {
+			pr_warn("NOHZ: local_softirq_pending %02x\n",
+				(unsigned int) local_softirq_pending());
+			ratelimit++;
+		}
 		return false;
 	}
 
@@ -1102,6 +1091,35 @@ static void tick_nohz_switch_to_nohz(void)
 	tick_nohz_activate(ts, NOHZ_MODE_LOWRES);
 }
 
+/*
+ * When NOHZ is enabled and the tick is stopped, we need to kick the
+ * tick timer from irq_enter() so that the jiffies update is kept
+ * alive during long running softirqs. That's ugly as hell, but
+ * correctness is key even if we need to fix the offending softirq in
+ * the first place.
+ *
+ * Note, this is different to tick_nohz_restart. We just kick the
+ * timer and do not touch the other magic bits which need to be done
+ * when idle is left.
+ */
+static void tick_nohz_kick_tick(struct tick_sched *ts, ktime_t now)
+{
+#if 0
+	/* Switch back to 2.6.27 behaviour */
+	ktime_t delta;
+
+	/*
+	 * Do not touch the tick device, when the next expiry is either
+	 * already reached or less/equal than the tick period.
+	 */
+	delta =	ktime_sub(hrtimer_get_expires(&ts->sched_timer), now);
+	if (delta.tv64 <= tick_period.tv64)
+		return;
+
+	tick_nohz_restart(ts, now);
+#endif
+}
+
 static inline void tick_nohz_irq_enter(void)
 {
 	struct tick_sched *ts = this_cpu_ptr(&tick_cpu_sched);
@@ -1112,8 +1130,10 @@ static inline void tick_nohz_irq_enter(void)
 	now = ktime_get();
 	if (ts->idle_active)
 		tick_nohz_stop_idle(ts, now);
-	if (ts->tick_stopped)
+	if (ts->tick_stopped) {
 		tick_nohz_update_jiffies(now);
+		tick_nohz_kick_tick(ts, now);
+	}
 }
 
 #else
@@ -1188,7 +1208,6 @@ void tick_setup_sched_timer(void)
 	 * Emulate tick processing via per-CPU hrtimers:
 	 */
 	hrtimer_init(&ts->sched_timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
-	ts->sched_timer.irqsafe = 1;
 	ts->sched_timer.function = tick_sched_timer;
 
 	/* Get the next period (per cpu) */
