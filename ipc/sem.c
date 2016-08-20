@@ -690,13 +690,6 @@ undo:
 static void wake_up_sem_queue_prepare(struct list_head *pt,
 				struct sem_queue *q, int error)
 {
-#ifdef CONFIG_PREEMPT_RT_BASE
-	struct task_struct *p = q->sleeper;
-	get_task_struct(p);
-	q->status = error;
-	wake_up_process(p);
-	put_task_struct(p);
-#else
 	if (list_empty(pt)) {
 		/*
 		 * Hold preempt off so that we don't get preempted and have the
@@ -708,7 +701,6 @@ static void wake_up_sem_queue_prepare(struct list_head *pt,
 	q->pid = error;
 
 	list_add_tail(&q->list, pt);
-#endif
 }
 
 /**
@@ -722,7 +714,6 @@ static void wake_up_sem_queue_prepare(struct list_head *pt,
  */
 static void wake_up_sem_queue_do(struct list_head *pt)
 {
-#ifndef CONFIG_PREEMPT_RT_BASE
 	struct sem_queue *q, *t;
 	int did_something;
 
@@ -735,7 +726,6 @@ static void wake_up_sem_queue_do(struct list_head *pt)
 	}
 	if (did_something)
 		preempt_enable();
-#endif
 }
 
 static void unlink_queue(struct sem_array *sma, struct sem_queue *q)
