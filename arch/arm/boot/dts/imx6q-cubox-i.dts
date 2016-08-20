@@ -55,3 +55,14 @@
 	fsl,transmit-atten-16ths = <9>;
 	fsl,no-spread-spectrum;
 };
+
+&cpu0 {
+       operating-points = <
+               /* kHz    uV */
+               1200000 1285000
+               996000  1270000
+               852000  1250000
+               792000  1175000
+               396000  1175000
+       >;
+};
