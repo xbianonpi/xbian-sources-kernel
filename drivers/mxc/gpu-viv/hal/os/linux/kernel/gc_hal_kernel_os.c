@@ -6985,8 +6985,14 @@ gckOS_ResetGPU(
     gcmkFOOTER_NO();
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 	struct reset_control *rstc = Os->device->rstc[Core];
-	if (rstc)
-		reset_control_reset(rstc);
+	if (rstc) {
+		if (Os->device->rstc_shared[Core]) {
+			reset_control_assert(rstc);
+			udelay(2);
+			reset_control_deassert(rstc);
+		} else
+			reset_control_reset(rstc);
+	}
 #else
     imx_src_reset_gpu((int)Core);
 #endif

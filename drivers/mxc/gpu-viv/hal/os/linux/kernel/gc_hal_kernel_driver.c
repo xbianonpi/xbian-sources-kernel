@@ -1152,12 +1152,25 @@ static int __devinit gpu_probe(struct platform_device *pdev)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 	rstc = devm_reset_control_get(&pdev->dev, "gpu3d");
 	galDevice->rstc[gcvCORE_MAJOR] = IS_ERR(rstc) ? NULL : rstc;
+	galDevice->rstc_shared[gcvCORE_MAJOR] = 0;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+	rstc = devm_reset_control_get_shared(&pdev->dev, "gpu2d");
+	galDevice->rstc[gcvCORE_2D] = IS_ERR(rstc) ? NULL : rstc;
+	galDevice->rstc_shared[gcvCORE_2D] = 1;
+
+	rstc = devm_reset_control_get_shared(&pdev->dev, "gpuvg");
+	galDevice->rstc[gcvCORE_VG] = IS_ERR(rstc) ? NULL : rstc;
+	galDevice->rstc_shared[gcvCORE_VG] = 1;
+#else
 	rstc = devm_reset_control_get(&pdev->dev, "gpu2d");
 	galDevice->rstc[gcvCORE_2D] = IS_ERR(rstc) ? NULL : rstc;
+	galDevice->rstc_shared[gcvCORE_2D] = 0;
 
 	rstc = devm_reset_control_get(&pdev->dev, "gpuvg");
 	galDevice->rstc[gcvCORE_VG] = IS_ERR(rstc) ? NULL : rstc;
+	galDevice->rstc_shared[gcvCORE_VG] = 0;
+#endif
 #endif
         platform_set_drvdata(pdev, galDevice);
 
