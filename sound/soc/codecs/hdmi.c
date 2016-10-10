@@ -23,7 +23,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 
-#define DRV_NAME "hdmi-audio-codec"
+#define DRV_NAME "imx-hdmi-audio-codec"
 
 static const struct snd_soc_dapm_widget hdmi_widgets[] = {
 	SND_SOC_DAPM_INPUT("RX"),

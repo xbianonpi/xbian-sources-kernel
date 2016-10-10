@@ -525,7 +525,7 @@ config SND_SOC_HDMI_CODEC
 	select SND_PCM_IEC958
 	select HDMI
 
-config SND_SOC_HDMI_CODEC
+config SND_SOC_IMX_HDMI_CODEC
 	tristate "HDMI stub CODEC"
 
 config SND_SOC_ES8328

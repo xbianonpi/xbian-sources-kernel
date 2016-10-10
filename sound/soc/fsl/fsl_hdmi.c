@@ -778,7 +778,7 @@ static int fsl_hdmi_dai_probe(struct platform_device *pdev)
 	}
 
 	hdmi_data->codec_dev = platform_device_register_simple(
-			"hdmi-audio-codec", -1, NULL, 0);
+			"imx-hdmi-audio-codec", -1, NULL, 0);
 	if (IS_ERR(hdmi_data->codec_dev)) {
 		dev_err(&pdev->dev, "failed to register HDMI audio codec\n");
 		ret = PTR_ERR(hdmi_data->codec_dev);

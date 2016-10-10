@@ -27,7 +27,7 @@ static struct snd_soc_dai_link imx_hdmi_dai_link = {
 	.name = "i.MX HDMI Audio Tx",
 	.stream_name = "i.MX HDMI Audio Tx",
 	.codec_dai_name = "hdmi-hifi",
-	.codec_name = "hdmi-audio-codec",
+	.codec_name = "imx-hdmi-audio-codec",
 	.platform_name = "imx-hdmi-audio",
 };
 
