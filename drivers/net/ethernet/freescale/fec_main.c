@@ -2560,8 +2560,7 @@ fec_enet_set_wol(struct net_device *ndev, struct ethtool_wolinfo *wol)
 
 static int fec_enet_get_eee(struct net_device *ndev, struct ethtool_eee *eee)
 {
-	struct fec_enet_private *fep = netdev_priv(ndev);
-	struct phy_device *phydev = fep->phy_dev;
+	struct phy_device *phydev = ndev->phydev;
 
 	if (!phydev)
 		return -ENODEV;
@@ -2571,8 +2570,7 @@ static int fec_enet_get_eee(struct net_device *ndev, struct ethtool_eee *eee)
 
 static int fec_enet_set_eee(struct net_device *ndev, struct ethtool_eee *eee)
 {
-	struct fec_enet_private *fep = netdev_priv(ndev);
-	struct phy_device *phydev = fep->phy_dev;
+	struct phy_device *phydev = ndev->phydev;
 
 	if (!phydev)
 		return -ENODEV;
@@ -2855,13 +2853,13 @@ fec_enet_open(struct net_device *ndev)
 	if (ret)
 		goto err_enet_alloc;
 
-	if (!fep->phy_dev) {
+	if (!ndev->phydev) {
 		fec_restart(ndev);
 		ret = fec_enet_mii_probe(ndev);
 		if (ret)
 			goto err_enet_alloc;
-	} else if (fep->phy_dev->state == PHY_RUNNING)
-			fep->phy_dev->state = PHY_HALTED;
+	} else if (ndev->phydev->state == PHY_RUNNING)
+			ndev->phydev->state = PHY_HALTED;
 
 	if (fep->quirks & FEC_QUIRK_ERR006687)
 		imx6q_cpuidle_fec_irqs_used();
@@ -3507,7 +3505,7 @@ fec_probe(struct platform_device *pdev)
 	if (ret)
 		goto failed_mii_probe;
 
-	phy_start_aneg(fep->phy_dev);
+	phy_start_aneg(ndev->phydev);
 
 	device_init_wakeup(&ndev->dev, fep->wol_flag &
 			   FEC_WOL_HAS_MAGIC_PACKET);
