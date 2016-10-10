@@ -1124,7 +1124,7 @@ static int __devinit gpu_probe(struct platform_device *pdev)
 	init_dma_attrs(&pool->attrs);
 	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &pool->attrs);
 	pool->virt = dma_alloc_attrs(&pdev->dev, pool->size, &pool->phys,
-				     GFP_KERNEL, &pool->attrs);
+				     GFP_KERNEL, pool->attrs);
 	if (!pool->virt) {
 		dev_err(&pdev->dev, "Failed to allocate contiguous memory\n");
 		return -ENOMEM;
@@ -1173,7 +1173,7 @@ static int __devinit gpu_probe(struct platform_device *pdev)
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 	dma_free_attrs(&pdev->dev, pool->size, pool->virt, pool->phys,
-		       &pool->attrs);
+		       pool->attrs);
 #endif
     gcmkFOOTER_ARG(KERN_INFO "Failed to register gpu driver: %d\n", ret);
     return ret;
@@ -1197,7 +1197,7 @@ static int __devexit gpu_remove(struct platform_device *pdev)
     drv_exit();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 	dma_free_attrs(&pdev->dev, pool->size, pool->virt, pool->phys,
-		       &pool->attrs);
+		       pool->attrs);
 #endif
     gcmkFOOTER_NO();
     return 0;
