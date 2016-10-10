@@ -71,7 +71,7 @@ static const struct file_operations viv_driver_fops = {
 static struct drm_driver driver = {
 //	.driver_features = DRIVER_RENDER,
 	.fops = &viv_driver_fops,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
 	.set_busid = drm_platform_set_busid,
 #endif
 	.name = DRIVER_NAME,
