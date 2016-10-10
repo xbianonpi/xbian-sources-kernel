@@ -315,7 +315,6 @@ struct caam_perfmon {
 	u32 rsvd2;
 #define CSTA_PLEND		BIT(10)
 #define CSTA_ALT_PLEND		BIT(18)
-	u32 rsvd3;
 	u32 status;		/* CSTA - CAAM Status */
 	u32 smpart;		/* Secure Memory Partition Parameters */
 	u32 smvid;		/* Secure Memory Version ID */
@@ -630,8 +629,6 @@ struct caam_job_ring {
 	u32 rsvd11;
 	u32 jrcommand;	/* JRCRx - JobR command */
 
-	u32 rsvd12[33];
-
 	/* Secure Memory Configuration - if you have it */
 	u32 sm_cmd;	/* SMCJRx - Secure memory command */
 	u32 rsvd13;
@@ -641,7 +638,7 @@ struct caam_job_ring {
 	u32 sm_group2;	/* SMAP2JRx - Secure memory access group 2 */
 	u32 sm_group1;	/* SMAP1JRx - Secure memory access group 1 */
 
-	u32 rsvd15[891];
+	u32 rsvd12[925];
 
 	/* Performance Monitor                                  f00-fff */
 	struct caam_perfmon perfmon;
