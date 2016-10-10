@@ -186,12 +186,20 @@ static void bfq_schedule_dispatch(struct bfq_data *bfqd);
 #define bfq_sample_valid(samples)	((samples) > 80)
 
 /*
+ * We regard a request as sync, if either a read or a sync write
+ */
+static inline bool rw_is_sync(int op, unsigned int rw_flags)
+{
+	return op == REQ_OP_READ || (rw_flags & REQ_SYNC);
+}
+
+/*
  * We regard a request as SYNC, if either it's a read or has the SYNC bit
  * set (in which case it could also be a direct WRITE).
  */
 static int bfq_bio_sync(struct bio *bio)
 {
-	if (bio_data_dir(bio) == READ || (bio->bi_rw & REQ_SYNC))
+	if (rw_is_sync(bio_op(bio), bio->bi_opf))
 		return 1;
 
 	return 0;
@@ -1533,7 +1541,7 @@ static int bfq_merge(struct request_queue *q, struct request **req,
 	struct request *__rq;
 
 	__rq = bfq_find_rq_fmerge(bfqd, bio);
-	if (__rq && elv_rq_merge_ok(__rq, bio)) {
+	if (__rq && elv_bio_merge_ok(__rq, bio)) {
 		*req = __rq;
 		return ELEVATOR_FRONT_MERGE;
 	}
@@ -1598,7 +1606,7 @@ static void bfq_merged_requests(struct request_queue *q, struct request *rq,
 	 */
 	if (bfqq == next_bfqq &&
 	    !list_empty(&rq->queuelist) && !list_empty(&next->queuelist) &&
-	    time_before(next->fifo_time, rq->fifo_time)) {
+	    time_before((unsigned long)next->fifo_time, (unsigned long)rq->fifo_time)) {
 		list_del_init(&rq->queuelist);
 		list_replace_init(&next->queuelist, &rq->queuelist);
 		rq->fifo_time = next->fifo_time;
@@ -2028,7 +2036,7 @@ bfq_merge_bfqqs(struct bfq_data *bfqd, struct bfq_io_cq *bic,
 	bfq_put_queue(bfqq);
 }
 
-static int bfq_allow_merge(struct request_queue *q, struct request *rq,
+static int bfq_allow_bio_merge(struct request_queue *q, struct request *rq,
 			   struct bio *bio)
 {
 	struct bfq_data *bfqd = q->elevator->elevator_data;
@@ -2071,6 +2079,11 @@ static int bfq_allow_merge(struct request_queue *q, struct request *rq,
 	return bfqq == RQ_BFQQ(rq);
 }
 
+static int bfq_allow_rq_merge(struct request_queue *q, struct request *rq,
+			    struct request *next)
+{
+        return RQ_BFQQ(rq) == RQ_BFQQ(next);
+}
 /*
  * Set the maximum time for the in-service queue to consume its
  * budget. This prevents seeky processes from lowering the throughput.
@@ -2247,7 +2260,7 @@ static struct request *bfq_check_fifo(struct bfq_queue *bfqq)
 
 	rq = rq_entry_fifo(bfqq->fifo.next);
 
-	if (time_is_after_jiffies(rq->fifo_time))
+	if (time_is_after_jiffies((unsigned long)rq->fifo_time))
 		return NULL;
 
 	return rq;
@@ -4079,7 +4092,7 @@ static int __bfq_may_queue(struct bfq_queue *bfqq)
 	return ELV_MQUEUE_MAY;
 }
 
-static int bfq_may_queue(struct request_queue *q, int rw)
+static int bfq_may_queue(struct request_queue *q, unsigned int op_flags)
 {
 	struct bfq_data *bfqd = q->elevator->elevator_data;
 	struct task_struct *tsk = current;
@@ -4096,7 +4109,7 @@ static int bfq_may_queue(struct request_queue *q, int rw)
 	if (!bic)
 		return ELV_MQUEUE_MAY;
 
-	bfqq = bic_to_bfqq(bic, rw_is_sync(rw));
+	bfqq = bic_to_bfqq(bic, op_is_sync(op_flags));
 	if (bfqq)
 		return __bfq_may_queue(bfqq);
 
@@ -4790,7 +4803,8 @@ static struct elevator_type iosched_bfq = {
 #ifdef CONFIG_BFQ_GROUP_IOSCHED
 		.elevator_bio_merged_fn =	bfq_bio_merged,
 #endif
-		.elevator_allow_merge_fn =	bfq_allow_merge,
+		.elevator_allow_bio_merge_fn =  bfq_allow_bio_merge,
+		.elevator_allow_rq_merge_fn =   bfq_allow_rq_merge,
 		.elevator_dispatch_fn =		bfq_dispatch_requests,
 		.elevator_add_req_fn =		bfq_insert_request,
 		.elevator_activate_req_fn =	bfq_activate_request,
