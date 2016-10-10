@@ -26,9 +26,27 @@
 ******************************* gckGALDEVICE Structure *******************************
 \******************************************************************************/
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+static inline void init_dma_attrs(unsigned long *attrs) {
+	if (attrs == NULL)
+		return;
+	bitmap_zero(attrs, sizeof(unsigned long));
+}
+
+static inline void dma_set_attr(unsigned long attr, unsigned long *attrs) {
+	if (attrs == NULL)
+		return;
+	*attrs |= attr;
+}
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 struct contiguous_mem_pool {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+	unsigned long attrs;
+#else
 	struct dma_attrs attrs;
+#endif
 	dma_addr_t phys;
 	void *virt;
 	size_t size;
