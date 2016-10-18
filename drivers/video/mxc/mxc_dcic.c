@@ -483,14 +483,17 @@ static ssize_t dcic_read(struct file *file, char __user *buf, size_t count,
 			count = min(sizeof(unsigned long), count);
 			ret = copy_to_user(buf, &mxc_dcic_counter, count) ? -EFAULT : count;
 			mxc_dcic_irq = 0;
+			return ret;
+		}
+		else if (file->f_flags & O_NONBLOCK)
+			return -EAGAIN;
+		else if (!mxc_dcic_vsync)
+			return 0;
+		else if (-ERESTARTSYS == (ret = wait_event_interruptible_timeout(mxc_dcic_wait, mxc_dcic_irq || !mxc_dcic_vsync, msecs_to_jiffies(250))))
+			return ret;
+		else if (!ret)
 			break;
-		}
-		if (file->f_flags & O_NONBLOCK) {
-			ret = -EAGAIN;
-		}
-		else if (wait_event_interruptible(mxc_dcic_wait, mxc_dcic_irq || !mxc_dcic_vsync))
-			ret = -ERESTARTSYS;
-	} while(!ret);
+	} while(1);
 
 	return ret;
 }
