@@ -975,7 +975,7 @@ qdisc_create(struct net_device *dev, struct netdev_queue *dev_queue,
 			rcu_assign_pointer(sch->stab, stab);
 		}
 		if (tca[TCA_RATE]) {
-			net_seqlock_t *running;
+			seqcount_t *running;
 
 			err = -EOPNOTSUPP;
 			if (sch->flags & TCQ_F_MQROOT)
