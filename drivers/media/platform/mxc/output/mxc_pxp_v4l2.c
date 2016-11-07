@@ -443,7 +443,7 @@ static int pxp_s_output(struct file *file, void *fh,
 			unsigned int i)
 {
 	struct pxps *pxp = video_get_drvdata(video_devdata(file));
-	struct v4l2_pix_format *fmt = &pxp->fb.fmt;
+	struct v4l2_pix_format *fmt = (struct v4l2_pix_format*) &pxp->fb.fmt;
 	u32 size;
 	int ret, bpp;
 
