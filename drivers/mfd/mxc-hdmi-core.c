@@ -43,6 +43,8 @@
 
 #include <linux/fb.h>
 
+#include "../video/mxc/mxc_dispdrv.h"
+
 struct mxc_hdmi_data {
 	struct platform_device *pdev;
 	unsigned long __iomem *reg_base;
@@ -111,7 +113,11 @@ static int hdmi_fb_event(struct notifier_block *nb,
 {
 	struct fb_event *event = v;
 	struct fb_info  *info  = event->info;
+	struct mxcfb_info *mxcfbi = (struct mxcfb_info *)info->par;
 	unsigned long flags;
+
+	if (mxcfbi->ipu_di != 0 && mxcfbi->ipu_di != 1)
+		return 0;
 
 	switch (val) {
 	case FB_EARLY_EVENT_BLANK:
