@@ -7733,8 +7733,8 @@ gckOS_WaitSignal(
             : Wait * HZ / 1000;
 #endif
 
-        DECLARE_SWAITQUEUE(wait);
-        __prepare_to_swait(&signal->obj.wait, &wait);
+        DEFINE_SWAITER(wait);
+        swait_prepare_locked(&signal->obj.wait, &wait);
 
         while (gcvTRUE)
         {
@@ -7812,7 +7812,7 @@ gckOS_WaitSignal(
             }
         }
 
-        __finish_swait(&signal->obj.wait, &wait);
+        swait_finish_locked(&signal->obj.wait, &wait);
 
 #if gcdDETECT_TIMEOUT
         if (complained)
