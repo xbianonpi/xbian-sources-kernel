@@ -3062,7 +3062,7 @@ gckOS_CreateMutex(
     gcmkONERROR(gckOS_Allocate(Os, gcmSIZEOF(struct mutex), Mutex));
 
     /* Initialize the mutex. */
-    mutex_init((struct mutex*)*Mutex);
+    mutex_init(*Mutex);
 
     /* Return status. */
     gcmkFOOTER_ARG("*Mutex=0x%X", *Mutex);
@@ -3107,7 +3107,7 @@ gckOS_DeleteMutex(
     gcmkVERIFY_ARGUMENT(Mutex != gcvNULL);
 
     /* Destroy the mutex. */
-    mutex_destroy((struct mutex*)Mutex);
+    mutex_destroy(Mutex);
 
     /* Free the mutex structure. */
     gcmkONERROR(gckOS_Free(Os, Mutex));
@@ -7703,7 +7703,7 @@ gckOS_WaitSignal(
 
     might_sleep();
 
-    raw_spin_lock_irq(&signal->obj.wait.lock);
+    spin_lock_irq(&signal->obj.wait.lock);
 
     if (signal->obj.done)
     {
@@ -7733,8 +7733,9 @@ gckOS_WaitSignal(
             : Wait * HZ / 1000;
 #endif
 
-        DEFINE_SWAITER(wait);
-        swait_prepare_locked(&signal->obj.wait, &wait);
+        DECLARE_WAITQUEUE(wait, current);
+        wait.flags |= WQ_FLAG_EXCLUSIVE;
+        __add_wait_queue_tail(&signal->obj.wait, &wait);
 
         while (gcvTRUE)
         {
@@ -7746,9 +7747,9 @@ gckOS_WaitSignal(
             }
 
             __set_current_state(TASK_INTERRUPTIBLE);
-            raw_spin_unlock_irq(&signal->obj.wait.lock);
+            spin_unlock_irq(&signal->obj.wait.lock);
             timeout = schedule_timeout(timeout);
-            raw_spin_lock_irq(&signal->obj.wait.lock);
+            spin_lock_irq(&signal->obj.wait.lock);
 
             if (signal->obj.done)
             {
@@ -7812,7 +7813,7 @@ gckOS_WaitSignal(
             }
         }
 
-        swait_finish_locked(&signal->obj.wait, &wait);
+        __remove_wait_queue(&signal->obj.wait, &wait);
 
 #if gcdDETECT_TIMEOUT
         if (complained)
@@ -7825,7 +7826,7 @@ gckOS_WaitSignal(
 #endif
     }
 
-    raw_spin_unlock_irq(&signal->obj.wait.lock);
+    spin_unlock_irq(&signal->obj.wait.lock);
 
 OnError:
     /* Return status. */
