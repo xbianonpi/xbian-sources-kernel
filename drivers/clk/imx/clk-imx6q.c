@@ -861,7 +861,11 @@ static void __init imx6q_clocks_init(struct device_node *ccm_node)
 	if (clk_on_imx6dl())
 		imx_clk_set_parent(clk[IMX6QDL_CLK_IPU1_SEL], clk[IMX6QDL_CLK_PLL3_PFD1_540M]);
 
-	imx_clk_set_rate(clk[IMX6QDL_CLK_PLL3_PFD1_540M], 540000000);
+	if (vpu352 && oc)
+		imx_clk_set_rate(clk[IMX6QDL_CLK_PLL3_PFD1_540M], 576000000);
+	else
+		imx_clk_set_rate(clk[IMX6QDL_CLK_PLL3_PFD1_540M], 540000000);
+
 	if (clk_on_imx6dl())
 		imx_clk_set_parent(clk[IMX6QDL_CLK_IPU1_SEL], clk[IMX6QDL_CLK_PLL3_PFD1_540M]);
 

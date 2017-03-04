@@ -80,6 +80,7 @@ enum mx3_cpu_pwr_mode {
 };
 
 extern int vpu352;
+extern int oc;
 
 void mx3_cpu_lp_set(enum mx3_cpu_pwr_mode mode);
 
