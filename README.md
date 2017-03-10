@@ -6,7 +6,10 @@ Linux Kernel sources in use by XBian
 
 Currently used kernel releases:
 
-- RPI / RPI2 / RPI3 - **linux-4.4.y** <hr>
+- RPI / RPI2 / RPI3 - **linux-4.9.y**<hr>
+    https://github.com/xbianonpi/xbian-sources-kernel/tree/rpi-4.9.y
+
+- RPI / RPI2 / RPI3 - **linux-4.4.y** (discontinued)<hr>
     https://github.com/xbianonpi/xbian-sources-kernel/tree/rpi-4.4.y
 
 - RPI / RPI2 / RPI3 - **linux-4.1.y** (discontinued)<hr>
@@ -21,4 +24,4 @@ Currently used kernel releases:
     (default configuration - imx_v7_cbi_hb_xbian_defconfig) <hr>
 
     (libCEC tree compatible with CEC kernel driver is at
-    https://github.com/xbianonpi/xbian-sources-libcec/tree/masterv3)
+    https://github.com/xbianonpi/xbian-sources-libcec/tree/masterv4)
