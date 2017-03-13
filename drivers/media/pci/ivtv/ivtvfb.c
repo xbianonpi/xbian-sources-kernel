@@ -776,7 +776,7 @@ static int _ivtvfb_check_var(struct fb_var_screeninfo *var, struct ivtv *itv)
 	/* Check video mode */
 	if (((var->vmode & FB_VMODE_MASK) != FB_VMODE_NONINTERLACED) &&
 		((var->vmode & FB_VMODE_MASK) != FB_VMODE_INTERLACED)) {
-		IVTVFB_DEBUG_WARN("Invalid video mode: %d\n", var->vmode & FB_VMODE_MASK);
+		IVTVFB_DEBUG_WARN("Invalid video mode: %lu\n", var->vmode & FB_VMODE_MASK);
 		return -EINVAL;
 	}
 
