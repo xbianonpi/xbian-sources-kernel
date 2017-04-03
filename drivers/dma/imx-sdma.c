@@ -790,8 +790,10 @@ static irqreturn_t sdma_int_handler(int irq, void *dev_id)
 		if ((sdmac->flags & SDMA_MODE_LOOP) &&
 			(sdmac->peripheral_type != IMX_DMATYPE_HDMI))
 			sdma_update_channel_loop(sdmac);
-		else
+		else if (!(sdmac->flags & SDMA_MODE_LOOP))
 			tasklet_schedule(&sdmac->tasklet);
+		else
+			dmaengine_desc_get_callback_invoke(&sdmac->desc, NULL);
 
 		__clear_bit(channel, &stat);
 	}
@@ -1493,6 +1495,7 @@ static struct dma_async_tx_descriptor *sdma_prep_dma_cyclic(
 	sdmac->chn_real_count = 0;
 	sdmac->period_len = period_len;
 
+	sdmac->flags |= SDMA_MODE_LOOP;
 	sdmac->direction = direction;
 
 	switch (sdmac->direction) {
