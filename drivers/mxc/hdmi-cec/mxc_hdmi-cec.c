@@ -87,7 +87,6 @@ struct hdmi_cec_shared {
 	u8 latest_cec_stat;
 	u32 physical_address;
 	struct work_struct hdmi_cec_hwq;
-	bool hpt_event;
 	wait_queue_head_t hdmi_cec_buf;
 	u8 open_count;
 };
@@ -233,7 +232,6 @@ void mxc_hdmi_cec_handle(u32 cec_stat)
 	if (cec_stat)
 		hdmi_cec_root.physical_address = cec_stat;
 
-	hdmi_cec_root.hpt_event = !!cec_stat;
 	if (!hdmi_cec_ready || !hdmi_cec_root.open_count)
 		return;
 	schedule_work(&hdmi_cec_root.hdmi_cec_hwq);
@@ -247,12 +245,12 @@ void mxc_hdmi_cec_handle_worker(struct work_struct *work)
 
 	pr_debug("%s: enter\n", __func__);
 
-	event = kzalloc(sizeof(struct hdmi_cec_event_list), GFP_ATOMIC);
+	event = kzalloc(sizeof(struct hdmi_cec_event_list), GFP_KERNEL);
 	if (!event) {
 		pr_err("%s: Not enough memory!\n", __func__);
 		return;
 	}
-	event->data.event_type = hdmi_cec_root.hpt_event ?
+	event->data.event_type = hdmi_cec_root.physical_address ?
 		MESSAGE_TYPE_CONNECTED : MESSAGE_TYPE_DISCONNECTED;
 
 	mutex_lock(&hdmi_cec_root.m_lock);
@@ -405,7 +403,7 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 	int ret = 0 , i = 0;
 	u8 msg[MAX_MESSAGE_LEN];
 	u8 val = 0;
-	int timeout = 1500;
+	int timeout = msecs_to_jiffies(1500);
 
 	if (!hdmi_cec_root.open_count || hdmi_cec->la == 0xff)
 		return -ENODEV;
@@ -442,23 +440,23 @@ static ssize_t hdmi_cec_write(struct file *file, const char __user *buf,
 		hdmi_writeb(val, HDMI_CEC_CTRL);
 		SIGNAL_FREE_ARB = SIGNAL_FREE_TIME_NORMAL;
 
-		ret = wait_event_interruptible_timeout(hdmi_cec_qs, !((val = hdmi_readb(HDMI_CEC_CTRL)) & 0x01), msecs_to_jiffies(timeout));
+		ret = wait_event_interruptible_timeout(hdmi_cec_qs, !((val = hdmi_readb(HDMI_CEC_CTRL)) & 0x01), timeout);
 		if (ret == -ERESTARTSYS) {
 			hdmi_cec_root.write_busy = false;
 			wake_up(&hdmi_cec_qs);
 			break;
 		}
 		pr_debug("%s:  wait_event ret %d\n", __func__, ret);
-		if (hdmi_cec_root.send_error > 5 || ret < 2) {
+		if (hdmi_cec_root.send_error > 5 || ret == 0) {
 			hdmi_writeb(0, HDMI_CEC_TX_CNT);
 			hdmi_cec_root.write_busy = false;
 			wake_up(&hdmi_cec_qs);
 			ret = -EIO;
-		} else if (hdmi_cec_root.send_error && ret > 1) {
+		} else if (hdmi_cec_root.send_error && ret > 0) {
 			pr_debug("%s: --- resending msg\n", __func__);
-			timeout = jiffies_to_msecs(ret);
+			timeout = ret;
 			ret = 0;
-		} else if (ret > 1) {
+		} else if (ret > 0) {
 			ret = count;
 		}
 	} while(!ret);
