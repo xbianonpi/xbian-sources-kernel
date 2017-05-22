@@ -257,7 +257,7 @@ struct btrfs_ioctl_fs_info_args {
 #define BTRFS_FEATURE_INCOMPAT_MIXED_GROUPS	(1ULL << 2)
 #define BTRFS_FEATURE_INCOMPAT_COMPRESS_LZO	(1ULL << 3)
 #define BTRFS_FEATURE_INCOMPAT_COMPRESS_ZSTD	(1ULL << 4)
-
+#define BTRFS_FEATURE_INCOMPAT_COMPRESS_LZ4     (1ULL << 4)
 /*
  * older kernels tried to do bigger metadata blocks, but the
  * code was pretty buggy.  Lets not let them try anymore.
