@@ -2696,6 +2696,8 @@ static int lan78xx_open(struct net_device *net)
 
 	dev->link_on = false;
 
+	tasklet_schedule(&dev->bh);
+
 	lan78xx_defer_kevent(dev, EVENT_LINK_RESET);
 done:
 	usb_autopm_put_interface(dev->intf);
