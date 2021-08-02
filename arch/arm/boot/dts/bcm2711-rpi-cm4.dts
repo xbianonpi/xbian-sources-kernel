@@ -434,8 +434,6 @@
 
 &gpio {
 	audio_pins: audio_pins {
-		brcm,pins = <>;
-		brcm,function = <>;
 	};
 };
 

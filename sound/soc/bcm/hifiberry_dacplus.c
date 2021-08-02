@@ -406,34 +406,29 @@ static int snd_rpi_hifiberry_dacplus_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 	if (ret) {
+		card->aux_dev = hifiberry_dacplus_aux_devs;
+		card->num_aux_devs =
+				ARRAY_SIZE(hifiberry_dacplus_aux_devs);
 		tpa_node = of_find_compatible_node(NULL, NULL, "ti,tpa6130a2");
 		tpa_prop = of_find_property(tpa_node, "status", &len);
-		if (tpa_prop) {
-			card->aux_dev = hifiberry_dacplus_aux_devs;
-			card->num_aux_devs =
-				ARRAY_SIZE(hifiberry_dacplus_aux_devs);
-			if (strcmp((char *)tpa_prop->value, "okay")) {
-				/* and activate headphone using change_sets */
-				dev_info(&pdev->dev,
-					"activating headphone amplifier\n");
-				of_changeset_init(&ocs);
-				ret = of_changeset_update_property(&ocs,
-					tpa_node, &tpa_enable_prop);
-				if (ret) {
-					dev_err(&pdev->dev,
-					"cannot activate headphone amplifier\n");
-					return -ENODEV;
-				}
-				ret = of_changeset_apply(&ocs);
-				if (ret) {
-					dev_err(&pdev->dev,
-					"cannot activate headphone amplifier\n");
-					return -ENODEV;
-				}
+
+		if (strcmp((char *)tpa_prop->value, "okay")) {
+			/* and activate headphone using change_sets */
+			dev_info(&pdev->dev, "activating headphone amplifier");
+			of_changeset_init(&ocs);
+			ret = of_changeset_update_property(&ocs, tpa_node,
+							&tpa_enable_prop);
+			if (ret) {
+				dev_err(&pdev->dev,
+				"cannot activate headphone amplifier\n");
+				return -ENODEV;
 			}
-		} else {
-			dev_warn(&pdev->dev,
-			"I2C-device (at 0x60) detected! Wrong overlay?\n");
+			ret = of_changeset_apply(&ocs);
+			if (ret) {
+				dev_err(&pdev->dev,
+				"cannot activate headphone amplifier\n");
+				return -ENODEV;
+			}
 		}
 	}
 
@@ -469,7 +464,7 @@ static int snd_rpi_hifiberry_dacplus_probe(struct platform_device *pdev)
 		snd_mute_gpio =	devm_gpiod_get_optional(&pdev->dev,
 						 "mute", GPIOD_OUT_HIGH);
 		if (IS_ERR(snd_mute_gpio)) {
-			dev_err(&pdev->dev, "Can't allocate GPIO (HW-MUTE)\n");
+			dev_err(&pdev->dev, "Can't allocate GPIO (HW-MUTE)");
 			return PTR_ERR(snd_mute_gpio);
 		}
 
@@ -488,7 +483,7 @@ static int snd_rpi_hifiberry_dacplus_probe(struct platform_device *pdev)
 		snd_reset_gpio = devm_gpiod_get_optional(&pdev->dev,
 						"reset", GPIOD_OUT_HIGH);
 		if (IS_ERR(snd_reset_gpio)) {
-			dev_err(&pdev->dev, "Can't allocate GPIO (HW-RESET)\n");
+			dev_err(&pdev->dev, "Can't allocate GPIO (HW-RESET)");
 			return PTR_ERR(snd_reset_gpio);
 		}
 
@@ -501,10 +496,10 @@ static int snd_rpi_hifiberry_dacplus_probe(struct platform_device *pdev)
 			"snd_soc_register_card() failed: %d\n", ret);
 	if (!ret) {
 		if (snd_mute_gpio)
-			dev_info(&pdev->dev, "GPIO%i for HW-MUTE selected\n",
+			dev_info(&pdev->dev, "GPIO%i for HW-MUTE selected",
 					gpio_chip_hwgpio(snd_mute_gpio));
 		if (snd_reset_gpio)
-			dev_info(&pdev->dev, "GPIO%i for HW-RESET selected\n",
+			dev_info(&pdev->dev, "GPIO%i for HW-RESET selected",
 					gpio_chip_hwgpio(snd_reset_gpio));
 	}
 	return ret;
