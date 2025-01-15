@@ -732,7 +732,7 @@ static const struct dvb_tuner_ops tda18250_ops = {
 	.info = {
 		.name              = "NXP TDA18250",
 		.frequency_min_hz  =  42 * MHz,
-		.frequency_max_hz  = 870 * MHz,
+		.frequency_max_hz  = 1002 * MHz,
 	},
 
 	.init = tda18250_init,
